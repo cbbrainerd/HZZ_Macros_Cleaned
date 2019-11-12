@@ -1335,16 +1335,10 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	if( datasetName.Contains("ZZTo4L") )  {	
 	  for (int l=0;l<MC_ZZ_MASS->size();++l){ //This originally looped to 4. Why loop when it just gets overwritten? Fix me
 	    if ((safeAccess(MC_ZZ_MASS))[l]>0. &&
-        fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][0])==fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][1]) &&
-        fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][0])==fabs((safeAccess(MC_ZZ_DD_PDGID))[l][1][0]) &&
-        fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][0])==fabs((safeAccess(MC_ZZ_DD_PDGID))[l][1][1])) finalState=1;
-        else finalState=2;
-        //Original code is as follows: this was buggy since the products were put in the wrong indices
-        /*
 		fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][4]) && 
 		fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][5]) &&
 		fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][6])) finalState=1; // 4e, 4mu, 4tau
-	    else finalState=2;*/
+	    else finalState=2;
 	    weight_kfactor=HZZ4LeptonsAnalysis::kfactor_qqZZ_qcd_M((safeAccess(MC_ZZ_MASS))[l],finalState);
 	    newweight=weight*pT_weight*pu_weight*weight_kfactor;
 	  }	

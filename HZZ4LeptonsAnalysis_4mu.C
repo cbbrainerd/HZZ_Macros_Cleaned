@@ -1458,9 +1458,9 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	if( datasetName.Contains("ZZTo4L") )  {	
     for (int l=0;l<MC_ZZ_MASS->size();++l){ //This originally looped to 4. Why loop when it just gets overwritten? Fix me
         if ((safeAccess(MC_ZZ_MASS))[l]>0. &&
-        fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][0])==fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][1]) &&
-        fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][0])==fabs((safeAccess(MC_ZZ_DD_PDGID))[l][1][0]) &&
-        fabs((safeAccess(MC_ZZ_DD_PDGID))[l][0][0])==fabs((safeAccess(MC_ZZ_DD_PDGID))[l][1][1])) finalState=1;
+        fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][4]) &&
+        fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][5]) &&
+        fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][6])) finalState=1;
         else finalState=2;
         //Original code is as follows: this was buggy since the products were put in the wrong indices
         /*
@@ -3486,6 +3486,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
         //Fix me
 	  for (int iz=0;iz<2;++iz) { //Loop over z bosons
 	  for (int il=0; il<2;++il) { //Loop over z boson daughters 
+        //HERE CURRENTLY
         int imc=iz+il+3; //Obvious bug, but it's how the ntuplizer does it
 	    //if (abs(safeAccess(MC_PDGID)[imc])!=13) continue;
 	    //double d = sqrt( (safeAccess(RECOMU_ETA)[ipt[i]]-safeAccess(MC_ETA)[imc]) * (safeAccess(RECOMU_ETA)[ ipt[i]]-safeAccess(MC_ETA)[imc]) +
@@ -3499,9 +3500,9 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
             }
             else if ( datasetName.Contains("GluGluToZZ") || datasetName.Contains("ZZTo4L_13TeV_powheg_pythia8") ) {
 	        cout << "This is ZZTo4L= " << endl;
-              if (abs(safeAccess(MC_ZZ_DD_PDGID)[0][iz][il])!=13) continue;
-              d = sqrt( (safeAccess(RECOMU_ETA)[ipt[i]]-safeAccess(MC_ZZ_DD_ETA)[0][iz][il]) * (safeAccess(RECOMU_ETA)[ ipt[i]]-safeAccess(MC_ZZ_DD_ETA)[0][iz][il]) +
-                        (safeAccess(RECOMU_PHI)[ipt[i]]-safeAccess(MC_ZZ_DD_PHI)[0][iz][il]) * (safeAccess(RECOMU_PHI)[ ipt[i]]-safeAccess(MC_ZZ_DD_PHI)[0][iz][il]));
+              if (abs(safeAccess(MC_ZZ_PDGID)[0][imc])!=13) continue;
+              d = sqrt( (safeAccess(RECOMU_ETA)[ipt[i]]-safeAccess(MC_ZZ_ETA)[0][imc]) * (safeAccess(RECOMU_ETA)[ ipt[i]]-safeAccess(MC_ZZ_ETA)[0][imc]) +
+                        (safeAccess(RECOMU_PHI)[ipt[i]]-safeAccess(MC_ZZ_PHI)[0][imc]) * (safeAccess(RECOMU_PHI)[ ipt[i]]-safeAccess(MC_ZZ_PHI)[0][imc]));
             }
 	    if (d<deltaR) {deltaR=d; nearest=ipt[i];}
 	  }
