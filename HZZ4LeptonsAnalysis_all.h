@@ -71,6 +71,7 @@ private:
 #include "NewNtuple.h"
 // Fixed size dimensions of array or collections stored in the TTree if any.
 class HZZ4LeptonsAnalysis : public NewNtuple {
+   void fill_xycorrected_met();
 public:
    HZZ4LeptonsAnalysis(TTree *tree=0,Double_t weight_=1.,std::string DATA_type_="DATA",std::string MC_type_="MC");
    virtual ~HZZ4LeptonsAnalysis();
@@ -96,11 +97,16 @@ public:
    float kfactor_qqZZ_qcd_M(float GENmassZZ, int finalState);
    float kfactor_qqZZ_qcd_Pt(float GENpTZZ, int finalState);
    float kfactor_ggZZ(float GENmassZZ, int finalState);
+   bool isMC;
+   int year;
+   Float_t         RECO_PFMET_xycorr;
+   Float_t         RECO_PFMET_PHI_xycorr;
 };
 
 #endif
 
 #ifdef HZZ4LeptonsAnalysis_cxx
+
 HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : fChain(0) 
 {
 // if parameter tree is not specified (or zero), connect the file
@@ -108,7 +114,17 @@ HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::stri
    weight = weight_;
    DATA_type = DATA_type_;
    MC_type = MC_type_;
-
+   if(!((DATA_type=="NO")^((MC_type=="NO")))) {
+     std::cout << "Invalid types: DATA_type: " << DATA_type << " MC_type: " << MC_type << ". One of these should be \"NO\".\n";
+     exit 1;
+   }
+   isMC=(MC_type!="NO");
+   if(isMC) {
+    auto len=MC_type.length();
+    year=std::stoi(MC_type.substr(len-2))+2000;
+   } else {
+    year=std::stoi(DATA_type);
+   }
    if (tree == 0) { 
       exit(9);
       TChain* chain = new TChain("HZZ4LeptonsAnalysis","");
