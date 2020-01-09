@@ -14,7 +14,7 @@
 #include <iostream>
 #include <fstream>
 #include <TLorentzVector.h>
-
+#include <utility>
 #if product_4mu
 
 #elif product_2e2mu
@@ -25,8 +25,7 @@
 #error "Product must be one of \"4mu\", \"2e2mu\", and \"4e\".\n" 
 #endif
 
-#include "good_lumis.h" //Forgot to run over golden json for ntupler: do it now
-
+bool good_lumi(int run,int lumi);
 //using namespace std;
 
 //Parse the command line options
@@ -71,7 +70,6 @@ private:
 #include "NewNtuple.h"
 // Fixed size dimensions of array or collections stored in the TTree if any.
 class HZZ4LeptonsAnalysis : public NewNtuple {
-   void fill_xycorrected_met();
 public:
    HZZ4LeptonsAnalysis(TTree *tree=0,Double_t weight_=1.,std::string DATA_type_="DATA",std::string MC_type_="MC");
    virtual ~HZZ4LeptonsAnalysis();
@@ -116,7 +114,7 @@ HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::stri
    MC_type = MC_type_;
    if(!((DATA_type=="NO")^((MC_type=="NO")))) {
      std::cout << "Invalid types: DATA_type: " << DATA_type << " MC_type: " << MC_type << ". One of these should be \"NO\".\n";
-     exit 1;
+     exit(1);
    }
    isMC=(MC_type!="NO");
    if(isMC) {
@@ -261,26 +259,32 @@ void apply_permutation(
 
 #include <cassert>
 
-template <class T>
-class defaults {
-    static T def;
-public:
-    static T& get_default() { 
-        if(def!=-999) { std::cout << "Warning! Value of vector changed out of bounds. Probably a bug.\n"; def=-999; }
-        return def;
-    }
+struct placeholder {
+    template<typename T>
+    operator T&() {}
 };
 
-template <class T>
-T defaults<T>::def = -999;
+template <class T,class=decltype(std::declval<T&>()=std::declval<int>())>
+typename std::vector<T>::reference get_default_helper(T*) {
+    static T def=-999;
+    if(def!=-999) { std::cout << "Warning! Value of vector changed out of bounds. Probably a bug.\n"; def=-999; }
+    return def;
+}
 
-template <class T,class=decltype(std::declval<T&>() = std::declval<int>())>
-T& get_default_helper(T*) { return defaults<T>::get_default(); }
+template <>
+typename std::vector<bool>::reference get_default_helper<bool>(bool*) {
+    static std::vector<bool> def={false};
+    if(def[0]) { std::cout << "Warning! Value of vector changed out of bounds. Probably a bug.\n"; def[0]=false; }
+    return def[0]; 
+}
+
+placeholder& get_default_helper(...) {
+    std::cerr << "default called on vector type. Nothing is implemented for this, so it's a fatal error.\n";
+    exit(1);
+}
+
 template <class T>
-T& get_default_helper(...) { std::cout << "Called on vector. Exiting.\n" ; assert(false) ; }
-template <class T>
-T& get_default() { return get_default_helper<T>((T*)0); }
-//Proxy class that returns -999 if a vector of int, double, etc., is accessed out of bounds. Hack to get macro code working quickly
+auto get_default() -> decltype(get_default_helper((T*)nullptr)) { return get_default_helper((T*)nullptr); }
 
 struct pair_hash
 {

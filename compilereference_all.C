@@ -15,6 +15,7 @@
 #endif
 
 //Arguments, in order: mc_or_data (just the string "mc" or "data"), dataset (e.g. DoubleEG or ZpBaryonic_MZp_100_MChi_1_13TeV_amcatnlo), year/configuration (e.g. 2017 for data, Fall17 for mc), and list of files to run over
+bool good_lumi(int,int) { return true; }
 
 int main (int argc, char ** argv){
   if(argc != 5) {
