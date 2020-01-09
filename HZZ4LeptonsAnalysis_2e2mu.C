@@ -1311,7 +1311,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
         //  newweight=weight*pT_weight*pu_weight*weight_kfactor;
         //}
         if ( datasetName.Contains("GluGluToZZ") ||  datasetName.Contains("GluGluToContinToZZ")){
-          for(int f=0;f<9;f++) ggzz_kf_wgt[f] = ggZZ_kf[f]->Eval(safeAccess(MC_ZZ_MASS)[0]); // Evaluate at the true m4l
+          for(int f=0;f<9;f++) ggzz_kf_wgt[f] = ggZZ_kf[f]->Eval(safeAccess(MC_ZZ_MASS)[0][0]); // Evaluate at the true m4l
           weight_kfactor=ggzz_kf_wgt[0]; // Using the nominal one
           newweight=weight*pT_weight*pu_weight*weight_kfactor;
         }
@@ -1330,12 +1330,12 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
       if (DATA_type=="NO"){
 	if( datasetName.Contains("ZZTo4L") )  {	
 	  for (int l=0;l<MC_ZZ_MASS->size();++l){ //This originally looped to 4. Why loop when it just gets overwritten? Fix me
-	    if ((safeAccess(MC_ZZ_MASS))[l]>0. &&
+	    if ((safeAccess(MC_ZZ_MASS))[l][0]>0. &&
 		fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][4]) && 
 		fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][5]) &&
 		fabs((safeAccess(MC_ZZ_PDGID))[l][3])==fabs((safeAccess(MC_ZZ_PDGID))[l][6])) finalState=1; // 4e, 4mu, 4tau
 	    else finalState=2;
-	    weight_kfactor=HZZ4LeptonsAnalysis::kfactor_qqZZ_qcd_M((safeAccess(MC_ZZ_MASS))[l],finalState);
+	    weight_kfactor=HZZ4LeptonsAnalysis::kfactor_qqZZ_qcd_M((safeAccess(MC_ZZ_MASS))[l][0],finalState);
 	    newweight=weight*pT_weight*pu_weight*weight_kfactor;
 	  }	
 	}
