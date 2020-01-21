@@ -1,3 +1,6 @@
+#include <TH1.h>
+#include <string>
+
 class pileup_corrector {
 public:
     double get_pileup_weight(int num_pu_vertices);

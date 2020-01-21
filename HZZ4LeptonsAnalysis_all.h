@@ -26,6 +26,8 @@
 #endif
 
 bool good_lumi(int run,int lumi);
+
+#include "pileup_corrector.h"
 //using namespace std;
 
 //Parse the command line options
@@ -66,7 +68,6 @@ private:
     }
 }*/
 // Header file for the classes stored in the TTree if any. Separate this from the rest of the logic so that further changes to the Ntuple structure can be handled more easily
-
 #include "NewNtuple.h"
 // Fixed size dimensions of array or collections stored in the TTree if any.
 class HZZ4LeptonsAnalysis : public NewNtuple {
@@ -97,6 +98,7 @@ public:
    float kfactor_ggZZ(float GENmassZZ, int finalState);
    bool isMC;
    int year;
+   pileup_corrector pileup_corr;
    Float_t         RECO_PFMET_xycorr;
    Float_t         RECO_PFMET_PHI_xycorr;
 };
@@ -105,7 +107,7 @@ public:
 
 #ifdef HZZ4LeptonsAnalysis_cxx
 
-HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : NewNtuple(tree)
+HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : NewNtuple(tree), pileup_corr(MC_type_!="NO",(MC_type_=="NO")?MC_type:DATA_type_)
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -260,8 +262,9 @@ void apply_permutation(
 #include <cassert>
 
 struct placeholder {
+    placeholder()=delete;
     template<typename T>
-    operator T&() {}
+    operator T&() {};
 };
 
 template <class T,class=decltype(std::declval<T&>()=std::declval<int>())>

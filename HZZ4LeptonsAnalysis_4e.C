@@ -150,13 +150,6 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 
    // Pileup reweighting 2016 data vs Spring16 MC in 80x                                                                                                                                                  
 
-   TFile *_filePU;
-   //_filePU= TFile::Open("pileup_MC_80x_271036-276811_69200.root");
-   //TH1D *puweight = (TH1D*)_filePU->Get("puweight");
-   std::cout << "Open PU Reweight.\n";
-   _filePU= TFile::Open("PU_Reweight_2017.root");     
-   TH1F *puweight = (TH1F*)_filePU->Get("PU_Ratio"); 
-
    /////////////Lepton Efficiency Scale Factrons/////////////
    // Load histograms
    //
@@ -1328,16 +1321,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 
       hPUvertices->Fill(num_PU_vertices,weight);
 
-      // pileup reweighting 2016
-      hPUvertices->Fill(num_PU_vertices,weight);
-
-      double pu_weight=1.;
-      if (MC_type == "Fall17"){
-	Int_t binx = puweight->GetXaxis()->FindBin(num_PU_vertices);
-	//cout << " bin x= " << binx << " " << puweight->GetBinContent(binx) << endl;	
-	pu_weight=double(puweight->GetBinContent(binx));
-	
-      }      
+      double pu_weight=pileup_corr.get_pileup_weight(num_PU_vertices);
        
       hPUvertices_ReWeighted->Fill(num_PU_vertices,weight*pu_weight);
       //cout << "Pileup interations and weight is= " << num_PU_vertices << " " << " and weight= " << pu_weight << endl;  
@@ -4747,7 +4731,6 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
         std::cout << "Waiting for network read errors wasted " << waited << " seconds.\n";
    }
    // write on output root file:
-   _filePU->Close();
    theFile->cd();
    //z1tree->Write();
    newtree->Write();
