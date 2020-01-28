@@ -1232,11 +1232,11 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	  f_lhe_parton_e[iparton]     = -999;
 	}
       }
-
+    
       //Reham 1:2917:259568
       // if (!(Run==1 && LumiSection==2254 && Event==184363)) continue;
       cout<<"This is run= "<<Run<<"Lumi= "<<LumiSection<<"Event= "<<Event<<endl;
-
+      common_loop();
       //if(!(Run==257531 && LumiSection==121 && Event==178979541)) continue;
 
       if(jentry%1 == 5000) cout << "Analyzing entry: " << jentry << endl;

@@ -4,13 +4,18 @@ from CRAB_Datasets import datasets as crab_datasets
 from NONCRAB_Datasets import datasets as noncrab_datasets
 from Datasets_Filelist import datasets as datasets_filelist
 
-condor_cfg='''#!/usr/bin/python
+condor_cfg="""#!/bin/bash
+
+''':'
+[ -z "$CMSSW_BASE" ] || exec env -i HOME="$HOME" bash -l "$0" "$@"
+exec /usr/bin/python "$0" "$@"
+exit 1
+'''
+
+import htcondor, classad
 import pickle, os, imp, errno, sys
-try:
-    import htcondor, classad
-except ImportError:
-    os.execl('usr/bin/python','python',*sys.argv)
 schedd_ad=imp.load_source('schedd','%s/bin/condor_schedd.py' % os.environ['HOME']).get_schedd()
+
 def getconfig(stage):
     sub=dict()
     sub['universe'] = "vanilla"
@@ -18,13 +23,14 @@ def getconfig(stage):
     sub['Submission_Stage'] = str(stage)
     sub['InputFilename'] = "inputs_{jobname}_$(Submission_Stage).txt"
     sub['Unique_Id'] = "$(Submission_Stage).$(Cluster).$(Process)"
-    sub['Executable'] = "../{executable}"
+    sub['Executable'] = "../../{executable}"
     sub['Arguments'] = "{year} {is_mc} {sample} $(process) {dataset} $(InputFilename) {files_per_job} $(Cluster) {jobname}"
     sub['Should_Transfer_Files'] = "YES"
     sub['WhenToTransferOutput'] = "ON_EXIT"
     sub['Requirements'] = 'TARGET.OpSys == "LINUX"&& (TARGET.Arch != "DUMMY" )'
     sub['Transfer_Output_Files'] = "fallback_$(Cluster).$(Process).tar.gz"
-    sub['Transfer_Input_Files'] = "../compilereference.sh, ../HZZ4LeptonsAnalysis_{sample}.C, ../HZZ4LeptonsAnalysis_all.h, ../Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root, ../ScaleFactors_mu_Moriond2018_final.root, ../egammaEffi_txt_EGM2D_Moriond2018v1.root, ../egammaEffi_txt_EGM2D_Moriond2018v1_gap.root, ../egammaEffi_txt_EGM2D_runBCDEF_passingRECO_lowEt.root, ../egammaEffi_txt_EGM2D_runBCDEF_passingRECO.root, ../PU_Reweight_2017.root, ../HISTOShapes2HDM_READ_ext.root, ../HISTOShapesZpB_READ.root, $(InputFilename), ../MELA_libs/libcollier.so, ../MELA_libs/libjhugenmela.so, ../MELA_libs/libmcfm_705.so, ../ZZMatrixElement.tar.gz, ../compilereference_all.C, ../good_lumis.cpp, ../good_lumis.h"
+    sub['Transfer_Input_Files'] = "../../compilereference.sh, ../../HZZ4LeptonsAnalysis_{sample}.C, ../../HZZ4LeptonsAnalysis_all.h, ../../Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root, ../../ScaleFactors_mu_Moriond2018_final.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1_gap.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO_lowEt.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO.root, ../../PU_Reweight_2017.root, ../../HISTOShapes2HDM_READ_ext.root, ../../HISTOShapesZpB_READ.root, $(InputFilename), ../../compilereference_all.C, ../../ZZMatrixElement.tar.gz, ../../pu_weights_2018.root, ../../DataPileupHistogram2018_69200_100bins.root, ../../pileup_corrector.cpp, ../../pileup_corrector.h, ../../NewNtuple.h, ../../NewNtuple.C" 
+#../../MELA_libs/libcollier.so, ../MELA_libs/libjhugenmela.so, ../MELA_libs/libmcfm_705.so, 
     sub['Output'] = "$(Unique_Id).stdout"
     sub['Error'] = "$(Unique_Id).stderr"
     sub['Log'] = "$(Unique_Id).log"
@@ -68,7 +74,7 @@ with open('.condor_history.pkl.swp','w') as f:
     pickle.dump(condor_history,f)
 
 shutil.move('.condor_history.pkl.swp','.condor_history.pkl')
-'''
+"""
 
 import argparse
 parser=argparse.ArgumentParser(description='Create condor jobs for submission.')
@@ -107,43 +113,53 @@ jobname=args.jobname
 search_site=args.read_site
 files_per_job=args.filesperjob
 sample=args.sample
+
+import string
+
 if jobname is None:
     jobname='job_%s_%s_condor' % (dataset,sample)
 
-from get_filelist import get_filelist
-try:
-    tasks=crab_datasets[dataset]
-    primary_dataset=dataset
-    if '/' in primary_dataset:
-        primary_dataset=primary_dataset.split('/')[1]
-        print primary_dataset
-    filelist=get_filelist(dataset,search_site,[taskname_to_lfn(task,primary_dataset) for task in tasks])
-except KeyError:
-    try:
-        lfns=noncrab_datasets[dataset]
-        filelist=get_filelist(dataset,search_site,lfns)
-    except KeyError:
-        try:
-            filelist=datasets_filelist[dataset]
-        except KeyError:
-            print 'Warning: file list for dataset %s could not be found. Continuing with empty file list.' % dataset
-            filelist=['']
+jobname=jobname.translate(string.maketrans('/','.'))
+#from get_filelist import get_filelist
+#try:
+#    tasks=crab_datasets[dataset]
+#    primary_dataset=dataset
+#    if '/' in primary_dataset:
+#        primary_dataset=primary_dataset.split('/')[1]
+#        print primary_dataset
+#    filelist=get_filelist(dataset,search_site,[taskname_to_lfn(task,primary_dataset) for task in tasks])
+#except KeyError:
+#    try:
+#        lfns=noncrab_datasets[dataset]
+#        filelist=get_filelist(dataset,search_site,lfns)
+#    except KeyError:
+#        try:
+#            filelist=datasets_filelist[dataset]
+#        except KeyError:
+#            print 'Warning: file list for dataset %s could not be found. Continuing with empty file list.' % dataset
+#            filelist=['']
+import json
+with open('HZZ_dataset_filenames.json') as f:
+    filelist=json.load(f)[dataset]['files']
 filelist=['root://cms-xrd-global.cern.ch/%s' % f for f in filelist]
+
+for fn in filelist:
+    print fn
 
 import errno
 try:
-    os.mkdir(jobname)
+    os.mkdir('condor_jobs/%s' % jobname)
 except OSError as e:
     if e.errno == errno.EEXIST:
         print('A job named "{}" already exists. Use a different name or delete the directory first.'.format(jobname))
     else:
         raise
-os.chdir(jobname)
+os.chdir('condor_jobs/%s' % jobname)
 
 
 test_args= { 
     'site' : 'FNAL',
-    'year' : '2017',
+    'year' : '2018',
     'is_mc'   : 'data',
     'dataset' : dataset,
     'files_per_job'  : files_per_job,
@@ -166,6 +182,9 @@ with open('.condor_history.pkl','w') as f:
         ('stages' , []), 
         ('clusters' , dict()))),f)
 
+#import shutil
+#shutil.copyfile('.condor_history.pkl','test/')
+
 os.mkdir('test')
 os.chdir('test')
 test_args['files_per_job']=1
@@ -175,4 +194,4 @@ with open('test_condor_{}.cfg'.format(jobname),'w') as f:
 with open('inputs_{}.txt'.format(jobname),'w') as f:
     f.write('%s\n' % filelist[0])
 
-os.chdir('../..')
+os.chdir('../../..')

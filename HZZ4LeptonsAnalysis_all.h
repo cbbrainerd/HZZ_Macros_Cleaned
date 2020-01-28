@@ -98,6 +98,7 @@ public:
    float kfactor_ggZZ(float GENmassZZ, int finalState);
    bool isMC;
    int year;
+   void common_loop();
    pileup_corrector pileup_corr;
    Float_t         RECO_PFMET_xycorr;
    Float_t         RECO_PFMET_PHI_xycorr;
@@ -106,6 +107,11 @@ public:
 #endif
 
 #ifdef HZZ4LeptonsAnalysis_cxx
+
+HZZ4LeptonsAnalysis::common_loop() {
+    //Fix
+    while(RECOELE_isGap->size() < RECOELE_PT->size()) RECOELE_isGap->push_back(false);
+}
 
 HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : NewNtuple(tree), pileup_corr(MC_type_!="NO",(MC_type_=="NO")?MC_type:DATA_type_)
 {

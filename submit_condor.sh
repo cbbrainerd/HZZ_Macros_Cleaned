@@ -61,8 +61,8 @@ sed 's!.*/!!' -i "$FILELIST"
 #popd
 
 . /cvmfs/cms.cern.ch/cmsset_default.sh
-export SCRAM_ARCH=slc6_amd64_gcc630
-export CMSV=CMSSW_9_4_10
+export SCRAM_ARCH=slc7_amd64_gcc700
+export CMSV=CMSSW_10_2_15
 eval `scramv1 project CMSSW $CMSV`
 mv ZZMatrixElement.tar.gz "$CMSV/src"
 pushd "$CMSV/src"
