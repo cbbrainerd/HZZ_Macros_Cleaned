@@ -26,7 +26,8 @@ YEAR="$1"
 IS_MC="$2"
 SAMPLE="$3"
 n="$4"
-DATASET="$5"
+#Replace / with . since those cause major problems
+DATASET="$(tr / . <<< "$5")"
 FILELIST="${6:-fileList}"
 set -x
 if [[ -n "$7" ]] ; then
@@ -46,7 +47,7 @@ touch "fallback_${CLUSTER}.${n}.tar.gz"
 #Probably not a good idea to run over too many files doing it this way
 while read line
 do
-    xrdcp "$line" .
+    xrdcp "$line" . || { sleep 10 ; xrdcp "$line" . ; } || { sleep 20 ; xrdcp "$line" . ; }
 done < "$FILELIST"
 
 sed 's!.*/!!' -i "$FILELIST"

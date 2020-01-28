@@ -143,18 +143,15 @@ with open('HZZ_dataset_filenames.json') as f:
     filelist=json.load(f)[dataset]['files']
 filelist=['root://cms-xrd-global.cern.ch/%s' % f for f in filelist]
 
-for fn in filelist:
-    print fn
-
 import errno
 try:
-    os.mkdir('condor_jobs/%s' % jobname)
+    os.mkdir('condor_jobs2/%s' % jobname)
 except OSError as e:
     if e.errno == errno.EEXIST:
         print('A job named "{}" already exists. Use a different name or delete the directory first.'.format(jobname))
     else:
         raise
-os.chdir('condor_jobs/%s' % jobname)
+os.chdir('condor_jobs2/%s' % jobname)
 
 
 test_args= { 

@@ -108,9 +108,44 @@ public:
 
 #ifdef HZZ4LeptonsAnalysis_cxx
 
-HZZ4LeptonsAnalysis::common_loop() {
-    //Fix
-    while(RECOELE_isGap->size() < RECOELE_PT->size()) RECOELE_isGap->push_back(false);
+template<class T,class U>
+inline void patch(std::vector<T>* patch,std::vector<U>* patch_to,T val) {
+    while(patch->size() < patch_to->size()) patch->push_back(val);
+}
+
+void HZZ4LeptonsAnalysis::common_loop() {
+    //Fix (code defaults these to -999 but they should be false- make this more generic later)
+    patch(RECOELE_isbarrel,RECOELE_PT,0);
+    patch(RECOELE_isendcap,RECOELE_PT,0);
+    patch(RECOELE_isEBetaGap,RECOELE_PT,0);
+    patch(RECOELE_isEBphiGap,RECOELE_PT,0);
+    patch(RECOELE_isEEdeeGap,RECOELE_PT,0);
+    patch(RECOELE_isEEringGap,RECOELE_PT,0);
+    patch(RECOELE_isGap,RECOELE_PT,0);
+    patch(RECOELE_isEcalDriven,RECOELE_PT,0);
+    patch(RECOELE_isTrackerDriven,RECOELE_PT,0);
+    patch(RECOELE_MatchingMCTruth,RECOELE_PT,0);
+    patch(RECOMU_glbmuPromptTight,RECOMU_PT,0);
+    patch(RECOMU_trkmuArbitration,RECOMU_PT,0);
+    patch(RECOMU_trkmu2DCompatibilityLoose,RECOMU_PT,0);
+    patch(RECOMU_trkmu2DCompatibilityTight,RECOMU_PT,0);
+    patch(RECOMU_trkmuOneStationLoose,RECOMU_PT,0);
+    patch(RECOMU_trkmuOneStationTight,RECOMU_PT,0);
+    patch(RECOMU_trkmuLastStationLoose,RECOMU_PT,0);
+    patch(RECOMU_trkmuLastStationTight,RECOMU_PT,0);
+    patch(RECOMU_trkmuLastStationAngLoose,RECOMU_PT,0);
+    patch(RECOMU_trkmuLastStationAngTight,RECOMU_PT,0);
+    patch(RECOMU_trkmuOneStationAngLoose,RECOMU_PT,0);
+    patch(RECOMU_trkmuOneStationAngTight,RECOMU_PT,0);
+    patch(RECOMU_trkmuLastStationOptimizedLowPtLoose,RECOMU_PT,0);
+    patch(RECOMU_trkmuLastStationOptimizedLowPtTight,RECOMU_PT,0);
+    patch(RECOMU_MatchingMCTruth,RECOMU_PT,0);
+    patch(RECOPHOT_MatchingMCTruth,RECOPHOT_PT,0);
+    //RECOzMuMu_MatchingMCTruth
+    //RECOzEE_MatchingMCTruth
+    //RECOHzzEEEE_MatchingMCTruth
+    //RECOHzzMMMM_MatchingMCTruth
+    //RECOHzzEEMM_MatchingMCTruth
 }
 
 HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : NewNtuple(tree), pileup_corr(MC_type_!="NO",(MC_type_=="NO")?MC_type:DATA_type_)
@@ -131,7 +166,7 @@ HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::stri
    } else {
     year=std::stoi(DATA_type);
    }
-   if (tree == 0) { 
+   if (tree == 0) {
       exit(9);
       TChain* chain = new TChain("HZZ4LeptonsAnalysis","");
       chain->Add("/lustre/cms/store/user/ndefilip/Summer12_52X_merged/roottree_leptons_DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball.root_a");
@@ -276,14 +311,14 @@ struct placeholder {
 template <class T,class=decltype(std::declval<T&>()=std::declval<int>())>
 typename std::vector<T>::reference get_default_helper(T*) {
     static T def=-999;
-    if(def!=-999) { std::cout << "Warning! Value of vector changed out of bounds. Probably a bug.\n"; def=-999; }
+    if(def!=-999) { /*std::cout << "Warning! Value of vector changed out of bounds. Probably a bug.\n";*/ def=-999; }
     return def;
 }
 
 template <>
 typename std::vector<bool>::reference get_default_helper<bool>(bool*) {
     static std::vector<bool> def={false};
-    if(def[0]) { std::cout << "Warning! Value of vector changed out of bounds. Probably a bug.\n"; def[0]=false; }
+    if(def[0]) { /*std::cout << "Warning! Value of vector changed out of bounds. Probably a bug.\n";*/ def[0]=false; }
     return def[0]; 
 }
 
