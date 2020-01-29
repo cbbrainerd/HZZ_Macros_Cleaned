@@ -7,8 +7,6 @@ public:
     pileup_corrector(bool isMC,std::string era);
     ~pileup_corrector();
 private:
-    void fail(int line);
     TH1D* pileup_ratio_;
     bool isMC_;
-    int year_;
 };

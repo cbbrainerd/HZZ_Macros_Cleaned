@@ -4,7 +4,7 @@
 
 #define FAIL() fail(__LINE__)
 
-void pileup_corrector::fail(int line) {
+static inline void fail(int line) {
     std::cout << "Pileup corrector failed on line " << line << ".\n";
     exit(1);
 }
