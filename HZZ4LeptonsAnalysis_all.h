@@ -14,6 +14,7 @@
 #include <iostream>
 #include <fstream>
 #include <TLorentzVector.h>
+#include <TSpline.h>
 #include <utility>
 #if product_4mu
 
@@ -102,6 +103,8 @@ public:
    pileup_corrector pileup_corr;
    Float_t         RECO_PFMET_xycorr;
    Float_t         RECO_PFMET_PHI_xycorr;
+private:
+   TSpline3* ggZZ_kf[9];
 };
 
 #endif
@@ -148,7 +151,7 @@ void HZZ4LeptonsAnalysis::common_loop() {
     //RECOHzzEEMM_MatchingMCTruth
 }
 
-HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : NewNtuple(tree), pileup_corr(MC_type_!="NO",(MC_type_=="NO")?MC_type:DATA_type_)
+HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : NewNtuple(tree), pileup_corr(MC_type_!="NO",(MC_type_=="NO")?MC_type:DATA_type_) , ggZZ_kf()
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -166,6 +169,25 @@ HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::stri
    } else {
     year=std::stoi(DATA_type);
    }
+   //Initialize ggZZ_kf
+   TString strSystTitle[9] ={
+     "Nominal",
+     "PDFScaleDn",
+     "PDFScaleUp",
+     "QCDScaleDn",
+     "QCDScaleUp",
+     "AsDn",
+     "AsUp",
+     "PDFReplicaDn",
+     "PDFReplicaUp"
+   };
+
+   TFile* fin = TFile::Open("Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root");
+   for(int f=0;f<9;f++){
+     ggZZ_kf[f] = (TSpline3*)fin->Get(Form("sp_kfactor_%s", strSystTitle[f].Data()));
+   }
+   fin->Close();
+
    if (tree == 0) {
       exit(9);
       TChain* chain = new TChain("HZZ4LeptonsAnalysis","");
@@ -180,6 +202,7 @@ HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::stri
 
 HZZ4LeptonsAnalysis::~HZZ4LeptonsAnalysis()
 {
+   for(int f=0;f<9;++f) delete ggZZ_kf[f];
    if (!fChain) return;
    delete fChain->GetCurrentFile();
 }

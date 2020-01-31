@@ -194,26 +194,6 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
    TH2F *ebe_mu_mc42x= (TH2F*)gDirectory->Get("mu_mc42x");
    */
    // kfactor_ggZZ(float GENmassZZ, int finalState)     
-   TString strSystTitle[9] ={
-     "Nominal",
-     "PDFScaleDn",
-     "PDFScaleUp",
-     "QCDScaleDn",
-     "QCDScaleUp",
-     "AsDn",
-     "AsUp",
-     "PDFReplicaDn",
-     "PDFReplicaUp"
-   };
-   
-   TFile* fin = TFile::Open("Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root");
-   // Open the files
-   TSpline3* ggZZ_kf[9]={NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
-   for(int f=0;f<9;f++){
-     ggZZ_kf[f] = (TSpline3*)fin->Get(Form("sp_kfactor_%s", strSystTitle[f].Data()));
-   }   
-   fin->Close();
-   
 
    // Book root file (for output):
    TFile * theFile = new TFile(output,"RECREATE");
@@ -1381,7 +1361,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
       }
 
                  
-      float pFill[11];for(int pf=0;pf<11;pf++)pFill[11]=-999.;
+//      float pFill[11];for(int pf=0;pf<11;pf++)pFill[11]=-999.;
 
       // ** Step 0:
       // simply number of entries...
@@ -1474,15 +1454,12 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
       double max_Iso_loose_e = -1 ;
       double max_Sip_loose_e = -1 ;
       double max_Ip_loose_e = -1 ;
-      
+      /*
       int* arraysize_mu = new int[1];
       arraysize_mu[0] = RECO_NMU;
       int iL_loose_mu[arraysize_mu[0]];
       delete [] arraysize_mu;
-
-      for( int i = 0; i < RECO_NMU; ++i ){
-	iL_loose_mu[i]=-999.;
-      }
+      */
  
       for( int i = 0; i < RECO_NMU; ++i ){
 
@@ -1501,8 +1478,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	    && fabs((safeAccess(RECOMU_ETA))[i]) < 2.4 
 	    && fabs((safeAccess(RECOMU_mubesttrkDxy))[i]) < .5 && fabs((safeAccess(RECOMU_mubesttrkDz))[i]) < 1.
 	    ){ 
-	  iL_loose_mu[N_loose_mu]=i;
-	  ++N_loose_mu ;
+      iL_loose_mu.push_back(i);
 	  if( (safeAccess(RECOMU_PFX_dB))[i] > max_Iso_loose_mu ) max_Iso_loose_mu = (safeAccess(RECOMU_PFX_dB))[i] ;
 	  if( fabs( (safeAccess(RECOMU_SIP))[i] ) > max_Sip_loose_mu ) max_Sip_loose_mu = fabs( (safeAccess(RECOMU_SIP))[i] ) ;
 	  if( fabs( (safeAccess(RECOMU_IP))[i] ) > max_Ip_loose_mu ) max_Ip_loose_mu = fabs( (safeAccess(RECOMU_IP))[i] ) ;
@@ -1516,18 +1492,21 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	  hDzMu_loose->Fill( (safeAccess(RECOMU_mubesttrkDz))[i],newweight );
 
 	}
-	
+	N_loose_mu=iL_loose_mu.size();
       } // end loop on muons
 
-      
+     /* 
       int* arraysize_e = new int[1];
       arraysize_e[0] = RECO_NELE;
       int iL_loose_e[arraysize_e[0]];
       delete [] arraysize_e;
-
+     */
+      std::vector<int> iL_loose_e;
+     /*
       for( int i = 0; i < RECO_NELE; ++i ){
 	iL_loose_e[i]=-999.;
       }
+     */
 
       for( int i = 0; i < RECO_NELE; ++i ){
 	
@@ -1544,8 +1523,8 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	    && fabs((safeAccess(RECOELE_gsftrack_dxy))[i]) < .5 
 	    && fabs((safeAccess(RECOELE_gsftrack_dz))[i]) < 1. 
 	    ) {	  
-	  iL_loose_e[N_loose_e]=i;
-	  ++N_loose_e ;
+//	  iL_loose_e[N_loose_e]=i;
+      iL_loose_e.push_back(i);
 	  if( (safeAccess(RECOELE_PFX_rho))[i] > max_Iso_loose_e ) max_Iso_loose_e = (safeAccess(RECOELE_PFX_rho))[i] ;
 	  if( fabs( (safeAccess(RECOELE_SIP))[i] ) > max_Sip_loose_e ) max_Sip_loose_e = fabs( (safeAccess(RECOELE_SIP))[i] ) ;
 	  if( fabs( (safeAccess(RECOELE_IP))[i] ) > max_Ip_loose_e ) max_Ip_loose_e = fabs( (safeAccess(RECOELE_IP))[i] ) ;
@@ -1561,7 +1540,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	}
 	
       }// end loop on electrons
-      
+	  N_loose_e=iL_loose_e.size();
       hN_loose_mu->Fill( N_loose_mu,newweight );
       hN_loose_e->Fill( N_loose_e,newweight );
       hIso_loose_mu->Fill( max_Iso_loose_mu,newweight);

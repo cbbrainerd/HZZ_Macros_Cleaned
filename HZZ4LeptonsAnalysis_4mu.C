@@ -185,25 +185,6 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
    */
 
    // kfactor_ggZZ(float GENmassZZ, int finalState)     
-   TString strSystTitle[9] ={
-     "Nominal",
-     "PDFScaleDn",
-     "PDFScaleUp",
-     "QCDScaleDn",
-     "QCDScaleUp",
-     "AsDn",
-     "AsUp",
-     "PDFReplicaDn",
-     "PDFReplicaUp"
-   };
-
-   TFile* fin = TFile::Open("Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root");
-   // Open the files
-   TSpline3* ggZZ_kf[9]={NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
-   for(int f=0;f<9;f++){
-     ggZZ_kf[f] = (TSpline3*)fin->Get(Form("sp_kfactor_%s", strSystTitle[f].Data()));
-   }   
-   fin->Close();
 
    // Book root file (for output):
    TFile * theFile = new TFile(output,"RECREATE");
