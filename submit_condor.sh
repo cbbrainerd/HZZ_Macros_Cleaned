@@ -1,10 +1,11 @@
 #!/bin/bash
-set -e
+set -e -x
 
 #exec 2>&1
 
 job_failed() {
 #Don't want abnormal termination from condor: run it again!
+    printf 'Failed with exit code %i' "$1" | tee >&2
     if [ $1 -gt 128 ]; then
         exit 11
     else
@@ -29,7 +30,6 @@ n="$4"
 #Replace / with . since those cause major problems
 DATASET="$(tr / . <<< "$5")"
 FILELIST="${6:-fileList}"
-set -x
 if [[ -n "$7" ]] ; then
     files_per_job="$7"
     echo "$files_per_job"
@@ -65,11 +65,20 @@ sed 's!.*/!!' -i "$FILELIST"
 export SCRAM_ARCH=slc7_amd64_gcc700
 export CMSV=CMSSW_10_2_15
 eval `scramv1 project CMSSW $CMSV`
+tar -xf libs.tar.gz
 mv ZZMatrixElement.tar.gz "$CMSV/src"
+mv libs.tar.gz "$CMSV/src"
 pushd "$CMSV/src"
 eval `scramv1 runtime -sh`
 tar -xf ZZMatrixElement.tar.gz
-scramv1 b -j8
+export ROOT_INCLUDE_PATH="`pwd`/ZZMatrixElement/MELA/interface:$ROOT_INCLUDE_PATH"
+rm ZZMatrixElement.tar.gz
+tar -xf libs.tar.gz
+mv libs.tar.gz ../lib
+cd ../lib
+tar -xf libs.tar.gz
+rm libs.tar.gz
+#scramv1 b -j8
 popd
 
 #if [[ ! : ]] ; then
@@ -106,12 +115,12 @@ cmsswlibdir="$CMSSW_RELEASE_BASE/lib/${SCRAM_ARCH}"
 
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${melalibdir}:${melalibdata}"
 
-#echo "Using precompiled macros"
+echo "Using precompiled macros"
 #echo "Compiling the macros"
 #bash compilereference.sh "$SAMPLE"
 
 #fi
-bash compilereference.sh "$SAMPLE"
+#bash compilereference.sh "$SAMPLE"
 
 if [[ "$SAMPLE" == "all" ]] ; then set 4mu 2e2mu 4e ; else set "$SAMPLE" ; fi
 if [[ "$1" != "4mu" ]] && [[ "$1" != "2e2mu" ]] && [[ "$1" != "4e" ]]; then
@@ -123,7 +132,7 @@ while [[ "$#" != 0 ]];
 do
 #./RunReference${1}_bkg ./bkg_input_${n}.txt 1 ./bkg_input_Fall17_AN.txt 1 ./data_input_${1}_2017_AN_miniaod.txt 1 "$SITE" "$YEAR" "$MC" "$DIRINPUT" "$DATASET"
 #./RunReference${1}_data ./bkg_input_${n}.txt 1 ./bkg_input_Fall17_AN.txt 1 ./data_input_${1}_2017_AN_miniaod.txt 1 "$SITE" "$YEAR" "$MC" "$DATASET" "fileList"
-./RunReference${1} "$IS_MC" "${DATASET}_${n}" "$YEAR" "$FILELIST" || job_failed $?
+./RunReference${1} "$IS_MC" "${DATASET}_${1}_${n}" "$YEAR" "$FILELIST" > >(tee output_"$CLUSTER"_stdout) 2> >(tee output_"$CLUSTER"_stderr >&2) || job_failed $?
 shift
 done
 

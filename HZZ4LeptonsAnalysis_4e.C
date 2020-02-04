@@ -23,8 +23,6 @@
 
 #include <unistd.h>
 
-//#include "ZZMatrixElement/MELA/src/computeAngles.h"
-//#include "ZZMatrixElement/MELA/src/computeAngles.cc"
 #include "ZZMatrixElement/MELA/interface/TUtil.hh"
 #include "ZZMatrixElement/MEMCalculators/interface/MEMCalculators.h"
 
@@ -165,19 +163,20 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 
    //2017
    //electron Id,Iso efficiency
+/*
     TFile *ele_scale_factors2017 = new TFile("egammaEffi_txt_EGM2D_Moriond2018v1.root");
     TH2F *ele_scale_2017 = (TH2F*)gDirectory->Get("EGamma_SF2D"); 
     TFile *ele_scale_factors2017_gap = new TFile("egammaEffi_txt_EGM2D_Moriond2018v1_gap.root");
     TH2F *ele_scale_2017_gap = (TH2F*)gDirectory->Get("EGamma_SF2D");
-
+*/
     //electron Reconstruction efficiency
-    
+/*    
     TFile *ele_RecoEff_2017_lowEt = new TFile("egammaEffi_txt_EGM2D_runBCDEF_passingRECO_lowEt.root"); //Low Et<20
     TH2F *ele_Reco_eff_2017_lowEt = (TH2F*)gDirectory->Get("EGamma_SF2D");
 
     TFile *ele_RecoEff_2017_highEt = new TFile("egammaEffi_txt_EGM2D_runBCDEF_passingRECO.root"); //high Et>20
     TH2F *ele_Reco_eff_2017_highEt = (TH2F*)gDirectory->Get("EGamma_SF2D");
-    
+*/    
    // TFile *ele_scale_Sipfactors2016 = new TFile("SIP.root");
    // TH2F *ele_scale_Sip2016 = (TH2F*)gDirectory->Get("hScaleFactors_SIP"); 
    // TFile *ele_scale_Sipfactors2016_Crack = new TFile("SIP_Cracks.root");
@@ -1460,7 +1459,8 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
       int iL_loose_mu[arraysize_mu[0]];
       delete [] arraysize_mu;
       */
- 
+      std::vector<int> iL_loose_mu;
+
       for( int i = 0; i < RECO_NMU; ++i ){
 
         if( debug ) cout << "\n Lepton i="<< i <<" properties: "
@@ -2308,23 +2308,11 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	  Double_t SC_Eta = (safeAccess(RECOELE_scl_Eta))[ z1lept[i] ]; //Reham
 
 	  Double_t Tmp_Pt = Pt;
-	  if (Pt>500)Tmp_Pt = 500; //overflow
+	  //if (Pt>500)Tmp_Pt = 500; //overflow
           
 	  // if( (MC_type == "Spring16" || MC_type=="Moriond17") && DATA_type == "NO"){
-	  if(  MC_type == "Fall17"  && DATA_type == "NO"){  
-            if((safeAccess(RECOELE_isGap))[ z1lept[i] ]==0){
-	      // Int_t binx = ele_scale_2017->GetXaxis()->FindBin(Eta);
-	      Int_t binx = ele_scale_2017->GetXaxis()->FindBin(SC_Eta);
-              Int_t biny = ele_scale_2017->GetYaxis()->FindBin(Tmp_Pt);
-              if (ele_scale_2017->GetBinContent(binx,biny)>0.) eff_weight_3*=ele_scale_2017->GetBinContent(binx,biny); 
-            }
-            else if((safeAccess(RECOELE_isGap))[ z1lept[i] ]==1){
-              //Int_t binx = ele_scale_2017_gap->GetXaxis()->FindBin(Eta);
-	      Int_t binx = ele_scale_2017_gap->GetXaxis()->FindBin(SC_Eta);
-              Int_t biny = ele_scale_2017_gap->GetYaxis()->FindBin(Tmp_Pt);
-              if (ele_scale_2017_gap->GetBinContent(binx,biny)>0.) eff_weight_3*=ele_scale_2017_gap->GetBinContent(binx,biny); 
-            }
-	    
+	  if(  /*MC_type == "Fall17" && */ DATA_type == "NO"){ 
+	        eff_weight_3*=scale_factors_ele.get_scale_factor(SC_Eta,Pt,!!safeAccess(RECOELE_isGap)[z1lept[i]]);
           }
         }//end scale
 
@@ -2335,28 +2323,13 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
           Double_t Eta = (safeAccess(RECOELE_ETA))[ z1lept[i] ]; 
 	  Double_t SC_Eta = (safeAccess(RECOELE_scl_Eta))[ z1lept[i] ]; //Reham
           
-	  // if( (MC_type == "Spring16" || MC_type=="Moriond17") && DATA_type == "NO"){
-	  if(  MC_type == "Fall17"  && DATA_type == "NO"){  
-            if(Pt <=20.){
-	      // Int_t binx = ele_Reco_eff_2017_lowEt->GetXaxis()->FindBin(Eta);
-	      Int_t binx = ele_Reco_eff_2017_lowEt->GetXaxis()->FindBin(SC_Eta);
-              Int_t biny = ele_Reco_eff_2017_lowEt->GetYaxis()->FindBin(Pt);
-              if (ele_Reco_eff_2017_lowEt->GetBinContent(binx,biny)>0.) eff_weight_3*=ele_Reco_eff_2017_lowEt->GetBinContent(binx,biny); 
-            }
-            else if(Pt>20.){
-	      Double_t Tmp_Pt = Pt;
-	      if (Pt>500.)Tmp_Pt = 500.;
-              //Int_t binx = ele_Reco_eff_2017_highEt->GetXaxis()->FindBin(Eta);
-	      Int_t binx = ele_Reco_eff_2017_highEt->GetXaxis()->FindBin(SC_Eta);
-              Int_t biny = ele_Reco_eff_2017_highEt->GetYaxis()->FindBin(Tmp_Pt);
-              if (ele_Reco_eff_2017_highEt->GetBinContent(binx,biny)>0.) eff_weight_3*=ele_Reco_eff_2017_highEt->GetBinContent(binx,biny); 
-            }
-	    
+	  if( /* MC_type == "Fall17"  && */ DATA_type == "NO"){
+        eff_weight_3*=scale_factors_ele.get_efficiency(SC_Eta,Pt);
           }
         }//end Reco scale
 	
         // Changing the weight for pileup and efficiency
-        if (DATA_type == "2017") eff_weight_3=1.; 
+        if (MC_type == "NO") eff_weight_3=1.; 
         if (eff_weight_3>0.) newweight=weight*pT_weight*pu_weight*weight_kfactor*eff_weight_3;
 	else newweight=weight*pT_weight*pu_weight*weight_kfactor;
 	
@@ -3037,23 +3010,9 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	Double_t SC_Eta = (safeAccess(RECOELE_scl_Eta))[ iL_4L[i] ]; //Reham
 
 	Double_t Tmp_Pt = Pt;
-	if (Pt>500)Tmp_Pt = 500; //overflow
         
-	// if( (MC_type == "Spring16" || MC_type=="Moriond17") && DATA_type == "NO"){
-	if(  MC_type == "Fall17"  && DATA_type == "NO"){ 
-          if((safeAccess(RECOELE_isGap))[ iL_4L[i] ]==0){
-            //Int_t binx = ele_scale_2017->GetXaxis()->FindBin(Eta);
-	    Int_t binx = ele_scale_2017->GetXaxis()->FindBin(SC_Eta);
-            Int_t biny = ele_scale_2017->GetYaxis()->FindBin(Tmp_Pt);
-            if (ele_scale_2017->GetBinContent(binx,biny)>0.) eff_weight*=ele_scale_2017->GetBinContent(binx,biny); 
-          }
-          else if((safeAccess(RECOELE_isGap))[ iL_4L[i] ]==1){
-	    // Int_t binx = ele_scale_2017_gap->GetXaxis()->FindBin(Eta);
-	    Int_t binx = ele_scale_2017_gap->GetXaxis()->FindBin(SC_Eta);
-            Int_t biny = ele_scale_2017_gap->GetYaxis()->FindBin(Tmp_Pt);
-            if (ele_scale_2017_gap->GetBinContent(binx,biny)>0.) eff_weight*=ele_scale_2017_gap->GetBinContent(binx,biny); 
-          }
-          
+	if(  /*MC_type == "Fall17"  &&*/ DATA_type == "NO"){ 
+	      eff_weight*=scale_factors_ele.get_scale_factor(SC_Eta,Pt,!!safeAccess(RECOELE_isGap)[iL_4L[i]]);
         }
       }//end for loop 
 
@@ -3066,31 +3025,12 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 
         
 	// if( (MC_type == "Spring16" || MC_type=="Moriond17") && DATA_type == "NO"){
-	if(  MC_type == "Fall17"  && DATA_type == "NO"){ 
-          if(Pt<=20.){
-
-	    
-            //Int_t binx = ele_Reco_eff_2017_lowEt->GetXaxis()->FindBin(Eta);
-	    Int_t binx = ele_Reco_eff_2017_lowEt->GetXaxis()->FindBin(SC_Eta);
-            Int_t biny = ele_Reco_eff_2017_lowEt->GetYaxis()->FindBin(Pt);
-            if (ele_Reco_eff_2017_lowEt->GetBinContent(binx,biny)>0.) eff_weight*=ele_Reco_eff_2017_lowEt->GetBinContent(binx,biny); 
-          }
-          else if(Pt>20.){
-
-	    Double_t Tmp_Pt =Pt;
-	    if(Pt>500.)Tmp_Pt =500.;
-
-	    // Int_t binx = ele_Reco_eff_2017_highEt->GetXaxis()->FindBin(Eta);
-	    Int_t binx = ele_Reco_eff_2017_highEt->GetXaxis()->FindBin(SC_Eta);
-            Int_t biny = ele_Reco_eff_2017_highEt->GetYaxis()->FindBin(Tmp_Pt);
-            if (ele_Reco_eff_2017_highEt->GetBinContent(binx,biny)>0.) eff_weight*=ele_Reco_eff_2017_highEt->GetBinContent(binx,biny); 
-          }
-          
-        }
+	if(  /*MC_type == "Fall17"  &&*/ DATA_type == "NO"){ 
+        eff_weight*=scale_factors_ele.get_efficiency(SC_Eta,Pt);
       }//end Reco eff.
-
+    }
       
-      if (DATA_type == "2017") eff_weight=1.; 
+      if (MC_type == "NO") eff_weight=1.; 
       // // Changing the weight for pileup and efficiency
       if (eff_weight>0.) newweight=weight*pT_weight*pu_weight*weight_kfactor*eff_weight;
       else newweight=weight*pT_weight*pu_weight*weight_kfactor;

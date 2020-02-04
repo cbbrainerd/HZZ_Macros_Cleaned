@@ -5,7 +5,6 @@
 #include <TCanvas.h>
 #include <TLorentzVector.h>
 #include <TNtuple.h>
-#include <TSpline.h>
 #include <TProfile.h>
 #include <TMath.h>
 #include <fstream>
@@ -170,8 +169,8 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
    
    //2017 data
    
-   TFile *mu_scale_factors = new TFile("ScaleFactors_mu_Moriond2018_final.root");
-   TH2F *mu_scale_2017 = (TH2F*)gDirectory->Get("FINAL"); 
+//   TFile *mu_scale_factors = new TFile("ScaleFactors_mu_Moriond2018_final.root");
+//   TH2F *mu_scale_2017 = (TH2F*)gDirectory->Get("FINAL"); 
 
    // correction to the error
    /*
@@ -2422,15 +2421,16 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	  if (Pt >200)Tmp_Pt= 200;//for overflow
 	  
 	  // if( (MC_type == "Spring16" || MC_type == "Moriond17")  && DATA_type == "NO"){
-	  if(  MC_type == "Fall17"  && DATA_type == "NO"){
-	    Int_t biny = mu_scale_2017->GetYaxis()->FindBin(Tmp_Pt);
-	    Int_t binx = mu_scale_2017->GetXaxis()->FindBin(Eta);
-	    if (mu_scale_2017->GetBinContent(binx,biny)>0.) eff_weight_3*=mu_scale_2017->GetBinContent(binx,biny); 
+	  if(  /*MC_type == "Fall17"  &&*/ DATA_type == "NO"){
+        eff_weight_3*=scale_factors_mu.get_scale_factor(Eta,Tmp_Pt,false);
+	    //Int_t biny = mu_scale_2017->GetYaxis()->FindBin(Tmp_Pt);
+	    //Int_t binx = mu_scale_2017->GetXaxis()->FindBin(Eta);
+	    //if (mu_scale_2017->GetBinContent(binx,biny)>0.) eff_weight_3*=mu_scale_2017->GetBinContent(binx,biny); 
 	  }
 	}
 	
 	// Changing the weight for pileup and efficiency
-	if (DATA_type == "2017") eff_weight_3=1.; 
+	if (MC_type == "NO") eff_weight_3=1.; 
 	if (eff_weight_3>0.) newweight=weight*pT_weight*pu_weight*weight_kfactor*eff_weight_3;
 	else newweight=weight*pT_weight*pu_weight*weight_kfactor;
 
@@ -3111,14 +3111,15 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	if (Pt>200) Tmp_Pt = 200;  //overflow      
 	
 	//if( (MC_type == "Spring16" || MC_type == "Moriond17" ) && DATA_type == "NO"){
-	if(  MC_type == "Fall17"  && DATA_type == "NO"){
-	  Int_t biny = mu_scale_2017->GetYaxis()->FindBin(Tmp_Pt);
-	  Int_t binx = mu_scale_2017->GetXaxis()->FindBin(Eta);
-	  if (mu_scale_2017->GetBinContent(binx,biny)>0.) eff_weight*=mu_scale_2017->GetBinContent(binx,biny); 
+	if(  /*MC_type == "Fall17"  &&*/ DATA_type == "NO"){
+      eff_weight*=scale_factors_mu.get_scale_factor(Eta,Tmp_Pt,false);
+	  //Int_t biny = mu_scale_2017->GetYaxis()->FindBin(Tmp_Pt);
+	  //Int_t binx = mu_scale_2017->GetXaxis()->FindBin(Eta);
+	  //if (mu_scale_2017->GetBinContent(binx,biny)>0.) eff_weight*=mu_scale_2017->GetBinContent(binx,biny); 
 	}	        
       }
             
-      if (DATA_type == "2017") eff_weight=1.; 
+      if (MC_type == "NO") eff_weight=1.; 
       // // Changing the weight for pileup and efficiency
       if (eff_weight>0.) newweight=weight*pT_weight*pu_weight*weight_kfactor*eff_weight;
       else newweight=weight*pT_weight*pu_weight*weight_kfactor;
@@ -3768,7 +3769,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
        double jercorr = 1.0; double jercorrup = 1.0; double jercorrdn = 1.0;
 
        //if (MC_type == "Spring16" || MC_type== "Moriond17") {
-       if(  MC_type == "Fall17"){
+       if(  /*MC_type == "Fall17"*/ MC_type!="NO"){
 	 jetparameters.setJetPt(safeAccess(RECO_PFJET_PT)[i]);
 	 jetparameters.setJetEta(safeAccess(RECO_PFJET_ETA)[i]);
 	 jetparameters.setRho(RHO_mu);

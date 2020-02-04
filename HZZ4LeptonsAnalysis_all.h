@@ -29,6 +29,7 @@
 bool good_lumi(int run,int lumi);
 
 #include "pileup_corrector.h"
+#include "scale_factors.h"
 //using namespace std;
 
 //Parse the command line options
@@ -101,6 +102,8 @@ public:
    int year;
    void common_loop();
    pileup_corrector pileup_corr;
+   scale_factors scale_factors_mu;
+   scale_factors_and_efficiencies scale_factors_ele;
    Float_t         RECO_PFMET_xycorr;
    Float_t         RECO_PFMET_PHI_xycorr;
 private:
@@ -151,7 +154,12 @@ void HZZ4LeptonsAnalysis::common_loop() {
     //RECOHzzEEMM_MatchingMCTruth
 }
 
-HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : NewNtuple(tree), pileup_corr(MC_type_!="NO",(MC_type_=="NO")?MC_type:DATA_type_) , ggZZ_kf()
+HZZ4LeptonsAnalysis::HZZ4LeptonsAnalysis(TTree *tree,Double_t weight_, std::string DATA_type_, std::string MC_type_) : 
+    NewNtuple(tree), 
+    pileup_corr(MC_type_!="NO",(MC_type_!="NO")?MC_type_:DATA_type_), 
+    scale_factors_mu(MC_type_!="NO",(MC_type_!="NO")?MC_type_:DATA_type_,std::string("muon")),
+    scale_factors_ele(MC_type_!="NO",(MC_type_!="NO")?MC_type_:DATA_type_,std::string("electron")),
+    ggZZ_kf()
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.

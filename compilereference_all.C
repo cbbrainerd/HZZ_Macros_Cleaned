@@ -19,8 +19,8 @@ bool good_lumi(int,int) { return true; }
 
 int main (int argc, char ** argv){
   if(argc != 5) {
-    std::cout << "Usage: ./RunReference mc_or_data dataset list_of_files\n";
-    exit(1);
+    std::cout << "Usage: ./RunReference mc_or_data dataset year/config list_of_files" << std::endl;
+    exit(2);
   }
   std::cout << "Ciao" << std::endl;
   std::string mc_or_data=argv[1];
@@ -39,7 +39,7 @@ int main (int argc, char ** argv){
   files.open(argv[4]);
   if(!files.good()) {
     std::cout << "Failed to open file \"" << argv[4] << "\".\n";
-    exit(1);
+    exit(3);
   }
   std::vector<std::string> filenames;
   std::string line;
@@ -49,10 +49,10 @@ int main (int argc, char ** argv){
   }
   /*if (filenames.size() > 1) {
     std::cout << "Temporarily removed TChain support due to problem with TTree::CloneTree when run on TChains. Runs over one file only.\n";
-    exit(1);
+    exit(4);
   }*/
-  std::cout << "Running over " << (is_mc ? "MC" : "DATA") << " dataset \"" << dataset << "\".\n";
-  
+  std::cout << "Running over " << (is_mc ? "MC" : "DATA") << " dataset \"" << dataset << "\" with configuration \"" << configuration << "\"." << std::endl;
+ 
   //const int ndata = atoi(argv[6]);
   //string datasamples[ndata];
   

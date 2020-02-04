@@ -29,7 +29,8 @@ def getconfig(stage):
     sub['WhenToTransferOutput'] = "ON_EXIT"
     sub['Requirements'] = 'TARGET.OpSys == "LINUX"&& (TARGET.Arch != "DUMMY" )'
     sub['Transfer_Output_Files'] = "fallback_$(Cluster).$(Process).tar.gz"
-    sub['Transfer_Input_Files'] = "../../compilereference.sh, ../../HZZ4LeptonsAnalysis_{sample}.C, ../../HZZ4LeptonsAnalysis_all.h, ../../Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root, ../../ScaleFactors_mu_Moriond2018_final.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1_gap.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO_lowEt.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO.root, ../../PU_Reweight_2017.root, ../../HISTOShapes2HDM_READ_ext.root, ../../HISTOShapesZpB_READ.root, $(InputFilename), ../../compilereference_all.C, ../../ZZMatrixElement.tar.gz, ../../pu_weights_2018.root, ../../DataPileupHistogram2018_69200_100bins.root, ../../pileup_corrector.cpp, ../../pileup_corrector.h, ../../NewNtuple.h, ../../NewNtuple.C" 
+    #sub['Transfer_Input_Files'] = "../../compilereference.sh, ../../HZZ4LeptonsAnalysis_{sample}.C, ../../HZZ4LeptonsAnalysis_all.h, ../../Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root, ../../ScaleFactors_mu_Moriond2018_final.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1_gap.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO_lowEt.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO.root, ../../PU_Reweight_2017.root, ../../HISTOShapes2HDM_READ_ext.root, ../../HISTOShapesZpB_READ.root, $(InputFilename), ../../compilereference_all.C, ../../ZZMatrixElement.tar.gz, ../../pu_weights_2018.root, ../../DataPileupHistogram2018_69200_100bins.root, ../../pileup_corrector.cpp, ../../pileup_corrector.h, ../../NewNtuple.h, ../../NewNtuple.C, ../../libs.tar.gz" 
+    sub['Transfer_Input_Files'] = "../../Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root, ../../ScaleFactors_mu_Moriond2018_final.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1.root, ../../egammaEffi_txt_EGM2D_Moriond2018v1_gap.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO_lowEt.root, ../../egammaEffi_txt_EGM2D_runBCDEF_passingRECO.root, ../../PU_Reweight_2017.root, ../../HISTOShapes2HDM_READ_ext.root, ../../HISTOShapesZpB_READ.root, $(InputFilename), ../../ZZMatrixElement.tar.gz, ../../pu_weights_2018.root, ../../DataPileupHistogram2018_69200_100bins.root, ../../pileup_corrector.cpp, ../../pileup_corrector.h, ../../libs.tar.gz, ../../RunReference{sample}, ../../DataPileupHistogram2018_69200_100bins.root, ../../pu_weights_2018.root, ../../Ele_Reco_2018.root, ../../Ele_Reco_LowEt_2018.root, ../../ElectronSF_Legacy_2018_Gap.root, ../../ElectronSF_Legacy_2018_NoGap.root, ../../libs.tar.gz" 
 #../../MELA_libs/libcollier.so, ../MELA_libs/libjhugenmela.so, ../MELA_libs/libmcfm_705.so, 
     sub['Output'] = "$(Unique_Id).stdout"
     sub['Error'] = "$(Unique_Id).stderr"
@@ -145,23 +146,28 @@ filelist=['root://cms-xrd-global.cern.ch/%s' % f for f in filelist]
 
 import errno
 try:
-    os.mkdir('condor_jobs2/%s' % jobname)
+    os.mkdir('condor_jobs_MC2/%s' % jobname)
 except OSError as e:
     if e.errno == errno.EEXIST:
         print('A job named "{}" already exists. Use a different name or delete the directory first.'.format(jobname))
     else:
         raise
-os.chdir('condor_jobs2/%s' % jobname)
+os.chdir('condor_jobs_MC2/%s' % jobname)
 
+is_data=(dataset.split('/')[1] in ['DoubleEG','SingleElectron','EGamma','SingleMuon','DoubleMuon','MuonEG'])
 
 test_args= { 
     'site' : 'FNAL',
-    'year' : '2018',
-    'is_mc'   : 'data',
+    'year' : '2018' if is_data else 'Autumn18',
+    'is_mc'   : 'data' if is_data else 'mc',
     'dataset' : dataset,
     'files_per_job'  : files_per_job,
     'sample' : sample,
 }
+
+print 'Generating job with following parameters:'
+for name,val in test_args.iteritems():
+    print name,val
 
 with open('inputs_{}_1.txt'.format(jobname),'w') as f:
     for fn in filelist:
