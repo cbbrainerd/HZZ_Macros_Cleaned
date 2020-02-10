@@ -13,18 +13,19 @@ exit 1
 '''
 
 import htcondor, classad
-import pickle, os, imp, errno, sys
+import pickle, os, imp, errno, sys, math
 schedd_ad=imp.load_source('schedd','%s/bin/condor_schedd.py' % os.environ['HOME']).get_schedd()
 
-def getconfig(stage):
+def getconfig(stage,files_per_job={files_per_job}):
     sub=dict()
     sub['universe'] = "vanilla"
+    sub['files_per_job'] = str(files_per_job)
     sub['use_x509userproxy'] = "True"
     sub['Submission_Stage'] = str(stage)
-    sub['InputFilename'] = "inputs_{jobname}_$(Submission_Stage).txt"
+    sub['InputFilename'] = "inputs_{jobname}_"+str(stage)+".txt"
     sub['Unique_Id'] = "$(Submission_Stage).$(Cluster).$(Process)"
     sub['Executable'] = "../../{executable}"
-    sub['Arguments'] = "{year} {is_mc} {sample} $(process) {dataset} $(InputFilename) {files_per_job} $(Cluster) {jobname}"
+    sub['Arguments'] = "{year} {is_mc} {sample} $(process) {dataset} $(InputFilename) $(files_per_job) $(Cluster) {jobname} $(Submission_Stage)"
     sub['Should_Transfer_Files'] = "YES"
     sub['WhenToTransferOutput'] = "ON_EXIT"
     sub['Requirements'] = 'TARGET.OpSys == "LINUX"&& (TARGET.Arch != "DUMMY" )'
@@ -62,13 +63,18 @@ if last_stage!=0:
 else: #First submit, no need to do any status stuff
     schedd=htcondor.Schedd(schedd_ad)
     sub_dict=getconfig(1)
+    file_count=0
+    with open(sub_dict['InputFilename']) as f:
+        for line in f:
+            file_count+=1
+    files_per_job=sub_dict['files_per_job']
+    number_of_jobs=int(math.ceil(file_count/float(files_per_job)))
     sub=htcondor.Submit(sub_dict)
-    number_of_jobs=condor_history['number_of_jobs']
     with schedd.transaction() as txn:
         cluster_number=sub.queue(txn,number_of_jobs)
     condor_history['stage']=1
     condor_history['stages'].append((schedd_ad,cluster_number))
-    condor_history['clusters'][(schedd_ad,cluster_number)]={{ 'stage' : 1 , 'status' : 'submitted' , 'classAd' : sub_dict , 'numberOfJobs' : number_of_jobs }}
+    condor_history['clusters'][(schedd_ad,cluster_number)]={{ 'stage' : 1 , 'status' : 'submitted' , 'classAd' : sub_dict , 'numberOfJobs' : number_of_jobs , 'filesPerJob' : files_per_job }}
 
 import shutil
 with open('.condor_history.pkl.swp','w') as f:
@@ -81,10 +87,13 @@ import argparse
 parser=argparse.ArgumentParser(description='Create condor jobs for submission.')
 parser.add_argument('dataset',action='store',help='Dataset to run over.')
 filesPerJobDefault=1
+dirnameDefault='condor_jobs'
 parser.add_argument('-j','--filesperjob',action='store',help='How many jobs to run over. Default %i.' % filesPerJobDefault,default=filesPerJobDefault)
+parser.add_argument('-d','--dirname',action='store',help='Directory to store condor jobs in. Default %s.' % dirnameDefault,default=dirnameDefault)
 parser.add_argument('sample',action='store',help='Sample to run over. One of 4e/4mu/2e2mu')
 parser.add_argument('jobname',action='store',help='Name of condor job. Defaults to job_<dataset>_<sample>_condor.',nargs='?')
 parser.add_argument('-r','--read_site',action='store',help='What site to search to find ntuples.',default='T3_US_FNALLPC')
+parser.add_argument('-i','--inputs',action='store',help='Override inputs (pass file with list of inputs).',default='')
 
 def taskname_to_lfn(taskname,primary_dataset=None):
     (number,task)=taskname.split(':',1)
@@ -114,6 +123,8 @@ jobname=args.jobname
 search_site=args.read_site
 files_per_job=args.filesperjob
 sample=args.sample
+dirname=args.dirname
+inputs=args.inputs
 
 import string
 
@@ -140,19 +151,25 @@ jobname=jobname.translate(string.maketrans('/','.'))
 #            print 'Warning: file list for dataset %s could not be found. Continuing with empty file list.' % dataset
 #            filelist=['']
 import json
-with open('HZZ_dataset_filenames.json') as f:
-    filelist=json.load(f)[dataset]['files']
-filelist=['root://cms-xrd-global.cern.ch/%s' % f for f in filelist]
+if inputs=='':
+    with open('HZZ_dataset_filenames.json') as f:
+        filelist=json.load(f)[dataset]['files']
+    filelist=['root://cms-xrd-global.cern.ch/%s' % f for f in filelist]
+else:
+    print 'Using filelist at %s' % inputs
+    with open(inputs) as f:
+        filelist=f.readlines()
+    print 'Contains %i files' % len(filelist)
 
 import errno
 try:
-    os.mkdir('condor_jobs_MC2/%s' % jobname)
+    os.mkdir('%s/%s' % (dirname,jobname))
 except OSError as e:
     if e.errno == errno.EEXIST:
         print('A job named "{}" already exists. Use a different name or delete the directory first.'.format(jobname))
     else:
         raise
-os.chdir('condor_jobs_MC2/%s' % jobname)
+os.chdir('%s/%s' % (dirname,jobname))
 
 is_data=(dataset.split('/')[1] in ['DoubleEG','SingleElectron','EGamma','SingleMuon','DoubleMuon','MuonEG'])
 
