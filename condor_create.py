@@ -157,8 +157,12 @@ if inputs=='':
     filelist=['root://cms-xrd-global.cern.ch/%s' % f for f in filelist]
 else:
     print 'Using filelist at %s' % inputs
-    with open(inputs) as f:
-        filelist=f.readlines()
+    try:
+        with open(inputs) as f:
+            filelist=f.readlines()
+    except IOError:
+        print 'No filelist at %s' % inputs
+        raise SystemExit
     print 'Contains %i files' % len(filelist)
 
 import errno
