@@ -100,7 +100,10 @@ int main (int argc, char ** argv){
 //        exit(1);
 //      }
       TChain* chain = new TChain("HZZ4LeptonsAnalysis","");
-      for(auto const& fn : filenames) {
+      for(auto& fn : filenames) {
+        //Remove carriage returns that may have snuck in from windows
+        while(!fn.empty() && fn.back()=='\r') fn.pop_back();
+        if(fn.empty()) continue;
         chain->Add(fn.c_str());
         std::cout << "Adding " << fn << ".\n";
       }
