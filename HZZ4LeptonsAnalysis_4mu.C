@@ -1352,7 +1352,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
       //if (Run==LumiSection && Run==Event) continue;   
       //if (jentry!=1276102) continue;
 
-      if(jentry%1 == 5000) std::cout << "Analyzing entry: " << jentry << endl;   
+      if(jentry%5000 == 0) std::cout << "Analyzing entry: " << jentry << endl;   
 
       if( RECO_NMU > 100 ) RECO_NMU = 100;
       if( RECO_NELE > 100 ) RECO_NELE = 100;
@@ -2420,7 +2420,6 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	  double_t Tmp_Pt = Pt;
 	  if (Pt >200)Tmp_Pt= 200;//for overflow
 	  
-	  // if( (MC_type == "Spring16" || MC_type == "Moriond17")  && DATA_type == "NO"){
 	  if(  /*MC_type == "Fall17"  &&*/ DATA_type == "NO"){
         eff_weight_3*=scale_factors_mu.get_scale_factor(Eta,Tmp_Pt,false);
 	    //Int_t biny = mu_scale_2017->GetYaxis()->FindBin(Tmp_Pt);

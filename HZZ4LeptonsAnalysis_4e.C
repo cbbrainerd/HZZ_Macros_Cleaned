@@ -1268,7 +1268,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 
       //if(!(Run==257531 && LumiSection==121 && Event==178979541)) continue;
  
-      if(jentry%1 == 5000) cout << "Analyzing entry: " << jentry << endl;
+      if(jentry%5000 == 0) cout << "Analyzing entry: " << jentry << endl;
       
 
       if( RECO_NMU > 100 ) RECO_NMU = 100;
