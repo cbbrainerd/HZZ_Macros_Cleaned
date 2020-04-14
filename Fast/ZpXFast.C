@@ -68,7 +68,7 @@ void ZpXanalyzer::analyze() {
         if(ele.loose_plus_SIP && ele.tight) tight_plus_SIP_electrons.push_back(&ele);
     }
     
-    //If we don't have exactly 3 loose+SIP leptons, we can stop now
+    //If we don't have exactly 3 loose+SIP leptons, we can stop now, since we can't possibly select the event otherwise
     if(loose_plus_SIP_electrons.size()+loose_plus_SIP_muons.size()!=3) return;
     //bkg_type is equivalent to number of electrons in event
     bkg_type type=(bkg_type)loose_plus_SIP_electrons.size();
@@ -356,8 +356,17 @@ void ZpXanalyzer::analyze() {
     tree_lep2_fsr_4v=&leps_fsr[1];
     tree_lep3_fsr_4v=&leps_fsr[2];
     tree_lep1_q=charges[0];
-    tree_lep2_q=charges[0];
-    tree_lep3_q=charges[0];
-
+    tree_lep2_q=charges[1];
+    tree_lep3_q=charges[2];
+    type_hist->Fill((float)type);
+    switch(type) {
+        case b_1e2mu:
+        case b_3e:
+        tree_lep3_tight=((electron*)cands[2])->tight;
+        break;
+        case b_2e1mu:
+        case b_3mu:
+        tree_lep3_tight=((muon*)cands[2])->tight;
+    }
     tree_out->Fill();
 }

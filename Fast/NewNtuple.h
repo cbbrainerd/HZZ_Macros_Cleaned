@@ -1,3 +1,4 @@
+#pragma once
 //////////////////////////////////////////////////////////
 // This class has been automatically generated on
 // Thu Jan  9 15:35:34 2020 by ROOT version 6.12/07
@@ -14,12 +15,13 @@
 #include <iostream>
 // Header file for the classes stored in the TTree if any.
 #include "vector"
+#include "vector"
+#include "vector"
+#include "vector"
+#include "vector"
+#include "vector"
 
 using std::vector;
-
-struct muon;
-struct electron;
-struct photon;
 
 class NewNtuple {
 public :
@@ -2477,6 +2479,7 @@ void NewNtuple::Init(TTree *tree)
    fChain->SetBranchAddress("tCHighPur_BTagJet_DISCR", &tCHighPur_BTagJet_DISCR, &b_tCHighPur_BTagJet_DISCR);
    fChain->SetBranchAddress("cSV_BTagJet_DISCR", &cSV_BTagJet_DISCR, &b_cSV_BTagJet_DISCR);
    Notify();
+   std::cout << b_irun << std::endl;
    std::cout << "Init() finished\n";
 }
 
@@ -2505,5 +2508,4 @@ Int_t NewNtuple::Cut(Long64_t entry)
 // returns -1 otherwise.
    return 1;
 }
-
 #endif // #ifdef NewNtuple_cxx

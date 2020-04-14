@@ -1,5 +1,6 @@
 #include "NewNtuple.h"
 #include "Math/Vector4D.h"
+#include "TH1I.h"
 
 //3mu,1e2mu,2e1mu,3e
 enum bkg_type : unsigned char {
@@ -28,9 +29,20 @@ public:
     int tree_lep1_q;
     int tree_lep2_q;
     int tree_lep3_q;
+    int tree_lep3_tight;
     TFile* outfile;
+    TH1* type_hist;
+    void enable_branches();
     ZpXanalyzer(TTree* intree,TFile* outfile_) : NewNtuple(intree) , outfile(outfile_) {
+        //Disable all branches for performance reasons
+        intree->SetBranchStatus("*",0);
+        Init(intree);
+        //Enable used branches. Be careful to add any additional branches to ZpXBranches.C!
+        enable_branches();
         outfile->cd();
+        type_hist=new TH1I("Bkg Types","Bkg Types",4,-.5,3.5);
+        const char *types[4]={"Z(mu+mu)+mu","Z(mu+mu)+e","Z(e+e)+mu","Z(e+e)+e"};
+        for(int i=1;i<=4;++i) type_hist->GetXaxis()->SetBinLabel(i,types[i-1]);
         tree_out=new TTree("ZpXTree","ZpXTree");
         tree_out->Branch("Run",&Run);
         tree_out->Branch("Event",&Event);
@@ -51,7 +63,18 @@ public:
         tree_out->Branch("lep1_q",&tree_lep1_q);
         tree_out->Branch("lep2_q",&tree_lep2_q);
         tree_out->Branch("lep3_q",&tree_lep3_q);
+        tree_out->Branch("passes_tight",&tree_lep3_tight);
+        tree_out->Branch("pfmet",&RECO_PFMET);
+        tree_out->Branch("pfmet_phi",&RECO_PFMET_PHI);
+        tree_out->Branch("puppimet",&RECO_PUPPIMET);
+        tree_out->Branch("puppimet_phi",&RECO_PUPPIMET_PHI);
+        tree_out->Branch("pfmet_xycorr",&RECO_PFMET_xycorr);
+        tree_out->Branch("pfmet_xycorr_phi",&RECO_PFMET_PHI_xycorr);
     }  
+    ~ZpXanalyzer() {
+        tree_out->Write();
+        type_hist->Write();
+    }
 };
 
 //Get all the information from recomu that is actually used in the analysis
@@ -286,7 +309,6 @@ struct photon{
 
 #include <cmath>
 
-//double M_PI=3.1415926535897932384626433832795028841971693993751058209749445923078164;
 template <typename T>
 constexpr T reduceRange(T x) {
   constexpr T o2pi = 1. / (2. * M_PI);
