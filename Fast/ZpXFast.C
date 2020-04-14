@@ -1,26 +1,33 @@
 #include <limits>
-#include "particle.h"
+#include "ZpXanalyzer.h"
+#include "Math/Vector4D.h"
+#include <unordered_map>
+#include <algorithm>
 
 typedef ROOT::Math::PtEtaPhiMVector four_vector;
 float Z_nominal_mass=91.188;
 
-//3mu,1e2mu,2e1mu,3e
-enum bkg_type : unsigned char {
-    b_3mu=0, 
-    b_1e2mu=1, 
-    b_2e1mu=2, 
-    b_3e=3;
-};
+void ZpXanalyzer::Loop() {
+   if (fChain == 0) return;
+
+   for (Long64_t jentry=0; jentry < fChain->GetEntriesFast() ;jentry++) {
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      fChain->GetEntry(jentry);
+      analyze();
+      // if (Cut(ientry) < 0) continue;
+   }
+}
 
 //Lepton ID
 //isMuon true: muon, false: lepton
 //isTight true: tight ID (sip, iso, etc) false: loose + SIP
-void analyze() {
+void ZpXanalyzer::analyze() {
 
     //lepton IDs. Also fill std::vector of leptons so we don't have to access through RECO... branches
     std::vector<muon> muons;
     for(std::size_t i=0;i!=RECOMU_PT->size();++i) {
-        muons.emplace_back(i);
+        muons.emplace_back(this,i);
     }
     
     //Vector of pointers quality vectors to avoid copying
@@ -37,7 +44,7 @@ void analyze() {
     
     std::vector<electron> electrons;
     for(std::size_t i=0;i!=RECOELE_PT->size();++i) {
-        electron ele(i);
+        electron ele(this,i);
         //Cross cleaning
         //Electrons are removed from consideration if they are too close to a tight+SIP muon
         bool cross_clean=true;
@@ -53,10 +60,12 @@ void analyze() {
     std::vector<electron*> loose_electrons;
     std::vector<electron*> loose_plus_SIP_electrons;
     std::vector<electron*> tight_electrons;
+    std::vector<electron*> tight_plus_SIP_electrons;
     for(auto &ele : electrons) {
         if(ele.loose) loose_electrons.push_back(&ele);
         if(ele.loose_plus_SIP) loose_plus_SIP_electrons.push_back(&ele);
         if(ele.tight) loose_electrons.push_back(&ele);
+        if(ele.loose_plus_SIP && ele.tight) tight_plus_SIP_electrons.push_back(&ele);
     }
     
     //If we don't have exactly 3 loose+SIP leptons, we can stop now
@@ -70,22 +79,24 @@ void analyze() {
         case b_3mu:
         case b_1e2mu:
             number_tight=tight_plus_SIP_muons.size();
-            charge[0]=tight_plus_SIP_muons[0]->RECOMU_CHARGE;
-            charge[1]=tight_plus_SIP_muons[1]->RECOMU_CHARGE;
-            if(number_tight>2) charge[2]=tight_plus_SIP_muons[2]->RECOMU_CHARGE;
+            charge[0]=tight_plus_SIP_muons[0]->CHARGE;
+            charge[1]=tight_plus_SIP_muons[1]->CHARGE;
+            if(number_tight>2) charge[2]=tight_plus_SIP_muons[2]->CHARGE;
             break;
         case b_2e1mu:
         case b_3e:
-            number_tight=tight_and_SIP_electrons.size();
-            charge[0]=tight_and_SIP_electrons[0]->RECOELE_CHARGE;
-            charge[1]=tight_and_SIP_electrons[1]->RECOELE_CHARGE;
-            if(number_tight>2) charge[2]=tight_and_SIP_electrons[2]->RECOELE_CHARGE;
+            number_tight=tight_plus_SIP_electrons.size();
+            charge[0]=tight_plus_SIP_electrons[0]->CHARGE;
+            charge[1]=tight_plus_SIP_electrons[1]->CHARGE;
+            if(number_tight>2) charge[2]=tight_plus_SIP_electrons[2]->CHARGE;
     }
     //Need at least two leptons of opposite sign
     if(number_tight<2) return;
     if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) return;
+    //To store fsr photons for each lepton
+    std::unordered_map<void*,photon> fsr_photons;
     for(std::size_t i=0;i!=RECOPFPHOT_PT->size();++i) {
-        photon phot(i);
+        photon phot(this,i);
         bool clean=1;
         for(electron* ele : loose_plus_SIP_electrons) {
             double deltaPhi=fabs(DELTAPHI(phot.PHI,ele->scl_Phi));
@@ -104,7 +115,6 @@ void analyze() {
         //lepton min{};
         void* nearest_lepton=nullptr;
         //Map FSR photon to each lepton
-        std::unordered_map<void*,photon> fsr_photons;
         for(muon* mu : loose_plus_SIP_muons) {
             double deltaR=sqrt(pow(DELTAPHI(phot.PHI,mu->PHI),2)+pow(phot.ETA-mu->ETA,2));
             double deltaRoverPtSq=deltaR/pow(phot.PT,2);
@@ -140,42 +150,42 @@ void analyze() {
                 prematched->second=phot;
             }
         } else { //First photon match, so keep it
-            fsr_photons[nearest_lepton]=phot;
+            fsr_photons.insert(std::make_pair(nearest_lepton,phot));
         }
     }
     //Compute isolation for all muons of interest, subtracting fsr photon if it exists
     //Iso=(PFchHad+max(0.,PFneuHad+PFphoton-.5PFPUchAllPart))/PT
     //Where PFphoton subtracts off the fsr photon if it exists within the cone .01 < deltaR <= .3
     for(muon* mu : loose_plus_SIP_muons) {
-        fsr_photon=fsr_photons.find((void*)mu);
+        auto fsr_photon=fsr_photons.find((void*)mu);
         //This should be the same as the one stored in the tree, but we can double check
-        mu->PFX_dB_prefsr=(mu->PFchHad+max(0.,mu->PFneuHad+mu->PFphoton-.5*PFPUchAllPart))/mu->PT;
+        mu->PFX_dB_prefsr=(mu->PFchHad+std::max(0.,mu->PFneuHad+mu->PFphoton-.5*mu->PFPUchAllPart))/mu->PT;
         //By default don't subtract fsr
         mu->PFX_dB_fsr=mu->PFX_dB_prefsr;
         if(fsr_photon!=fsr_photons.end()) {
             photon const& phot=fsr_photon->second;
             //Muon iso cone
             if (phot.deltaR < .3 && phot.deltaR > .01) {
-                mu->PFX_dB_fsr=(mu->PFchHad+max(0.,mu->PFneuHad+(mu->PFphoton-phot.PT)-.5*PFPUchAllPart))/mu->PT;
+                mu->PFX_dB_fsr=(mu->PFchHad+std::max(0.,mu->PFneuHad+(mu->PFphoton-phot.PT)-.5*mu->PFPUchAllPart))/mu->PT;
             }
         }
     }
     for(electron* ele : loose_plus_SIP_electrons) {
-        fsr_photon=fsr_photons.find((void*)ele);
+        auto fsr_photon=fsr_photons.find((void*)ele);
         //This should be the same as the one stored in the tree, but we can double check
-        ele->PFX_dB_prefsr=(ele->PFchHad+max(0.,ele->PFneuHad+ele->PFphoton-.5*PFPUchAllPart))/ele->PT;
+        ele->PFX_dB_prefsr=(ele->PFchHad+std::max(0.,ele->PFneuHad+ele->PFphoton-.5*ele->PFPUchAllPart))/ele->PT;
         //By default don't subtract fsr
         ele->PFX_dB_fsr=ele->PFX_dB_prefsr;
         if(fsr_photon!=fsr_photons.end()) {
             photon const& phot=fsr_photon->second;
             //Muon iso cone
             if (phot.deltaR < .3 && phot.deltaR > .01) {
-                ele->PFX_dB_fsr=(ele->PFchHad+max(0.,ele->PFneuHad+(ele->PFphoton-phot.PT)-.5*PFPUchAllPart))/ele->PT;
+                ele->PFX_dB_fsr=(ele->PFchHad+std::max(0.,ele->PFneuHad+(ele->PFphoton-phot.PT)-.5*ele->PFPUchAllPart))/ele->PT;
             }
         }
     }
     std::vector<muon*> muon_tight_SIP_iso;
-    for(muon* mu : muon_tight_plus_SIP) {
+    for(muon* mu : tight_plus_SIP_muons) {
         if(mu->PFX_dB_fsr < .35) muon_tight_SIP_iso.push_back(mu);
     }
     //If we are using muons for the Z candidate, check that we still have a possible Z candidate after isolation is applied
@@ -183,14 +193,15 @@ void analyze() {
         case b_3mu:
         case b_1e2mu:
             number_tight=muon_tight_SIP_iso.size();
-            charge[0]=muon_tight_SIP_iso[0]->RECOMU_CHARGE;
-            charge[1]=muon_tight_SIP_iso[1]->RECOMU_CHARGE;
-            if(number_tight>2) charge[2]=muon_tight_SIP_iso[2]->RECOMU_CHARGE;
+            charge[0]=muon_tight_SIP_iso[0]->CHARGE;
+            charge[1]=muon_tight_SIP_iso[1]->CHARGE;
+            if(number_tight>2) charge[2]=muon_tight_SIP_iso[2]->CHARGE;
             if(number_tight<2) return;
             if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) return;
             break;
         case b_2e1mu:
         case b_3e:
+            ;
     }
     std::array<four_vector,3> leps;
     std::array<four_vector,3> leps_fsr;
@@ -207,8 +218,8 @@ void analyze() {
                 case b_3mu:
                 case b_1e2mu:
                     //Only two tight muons, so just use both
-                    leps[0]=four_vector(*muon_tight_SIP_iso[0]);
-                    leps[1]=four_vector(*muon_tight_SIP_iso[1]);
+                    leps[0]=muon_tight_SIP_iso[0]->fv();
+                    leps[1]=muon_tight_SIP_iso[1]->fv();
                     charges[0]=muon_tight_SIP_iso[0]->CHARGE;
                     charges[1]=muon_tight_SIP_iso[1]->CHARGE;
                     cands[0]=(void*)(muon_tight_SIP_iso[0]);
@@ -217,8 +228,8 @@ void analyze() {
                 case b_3e:
                 case b_2e1mu:
                     //Only two tight muons, so just use both
-                    leps[0]=four_vector(*tight_plus_SIP_electrons[0]);
-                    leps[1]=four_vector(*tight_plus_SIP_electrons[1]);
+                    leps[0]=tight_plus_SIP_electrons[0]->fv();
+                    leps[1]=tight_plus_SIP_electrons[1]->fv();
                     charges[0]=tight_plus_SIP_electrons[0]->CHARGE;
                     charges[1]=tight_plus_SIP_electrons[1]->CHARGE;
                     cands[0]=(void*)(tight_plus_SIP_electrons[0]);
@@ -231,7 +242,7 @@ void analyze() {
                     for(int i=0;i<3;++i) {
                         void* cand=(void*)loose_plus_SIP_muons[i];
                         if(cand==cands[0] || cand==cands[1]) continue;
-                        leps[2]=four_vector(*(muon*)cand);
+                        leps[2]=((muon*)cand)->fv();
                         charges[2]=((muon*)cand)->CHARGE;
                         cands[2]=cand;
                         break;
@@ -241,26 +252,30 @@ void analyze() {
                     for(int i=0;i<3;++i) {
                         void* cand=(void*)loose_plus_SIP_electrons[i];
                         if(cand==cands[0] || cand==cands[1]) continue;
-                        leps[2]=four_vector(*(electron*)cand);
+                        leps[2]=((electron*)cand)->fv();
                         charges[2]=((electron*)cand)->CHARGE;
                         cands[2]=cand;
                         break;
                     }
                     break;
                 case b_1e2mu: //Only one loose electron
-                    leps[2]=four_vector(loose_plus_SIP_electrons[0]);
+                    leps[2]=loose_plus_SIP_electrons[0]->fv();
                     charges[2]=loose_plus_SIP_electrons[0]->CHARGE;
                     cands[2]=(void*)(loose_plus_SIP_electrons[0]);
                     break;
                 case b_2e1mu:
-                    leps[2]=four_vector(loose_plus_SIP_muons[0]);
+                    leps[2]=loose_plus_SIP_muons[0]->fv();
                     charges[2]=loose_plus_SIP_muons[0]->CHARGE;
                     cands[2]=(void*)(loose_plus_SIP_muons[0]);
                     break;
             } //End populating four vectors for number_tight==2
             //Now add fsr to lepton four vectors
-            if(fsr_photon!=fsr_photons.end()) {
-                leps_fsr[i]=leps[i]+four_vector(*fsr_photon->second);
+            for(int i=0;i<3;++i) {
+                auto fsr_photon=fsr_photons.find(cands[i]);
+                leps_fsr[i]=leps[i];
+                if(fsr_photon!=fsr_photons.end()) {
+                    leps_fsr[i]+=fsr_photon->second.fv();
+                }
             }
             break;
         case 3: //We need to find the pair closest to the nominal Z mass
@@ -272,19 +287,20 @@ void analyze() {
                     //Muon that is OS of other two must be included in Z candidate, so assign it to lep1. Assign the other two to lep2 and lep3 (we will swap later if the order is wrong)
                     if(muon_tight_SIP_iso[0]->CHARGE==muon_tight_SIP_iso[1]->CHARGE) {
                         OS_num=2;
-                    } else if(muon_tight_SIP_iso[0]->CHARGE==muon_tight_SIP_iso[2]) {
+                    } else if(muon_tight_SIP_iso[0]->CHARGE==muon_tight_SIP_iso[2]->CHARGE) {
                         OS_num=1;
                     } else {
                         OS_num=0;
                     }
                     for(int i=0;i<3;++i) {
-                        leps[i]=four_vector(*muon_tight_SIP_iso[(OS_num+i)%3]);
+                        leps[i]=muon_tight_SIP_iso[(OS_num+i)%3]->fv();
                         cands[i]=(void*)(muon_tight_SIP_iso[(OS_num+i)%3]);
                         charges[i]=(muon_tight_SIP_iso[(OS_num+i)%3])->CHARGE;
                         auto fsr_photon=fsr_photons.find(cands[i]);
                         //Add fsr in for Z reconstruction
+                        leps_fsr[i]=leps[i];
                         if(fsr_photon!=fsr_photons.end()) {
-                            leps_fsr[i]=leps[i]+four_vector(*fsr_photon->second);
+                            leps_fsr[i]+=fsr_photon->second.fv();
                         }
                     }
                     break;
@@ -292,26 +308,32 @@ void analyze() {
                     //Electron that is OS of other two must be included in Z candidate, so assign it to lep1. Assign the other two to lep2 and lep3 (we will swap later if the order is wrong)
                     if(tight_plus_SIP_electrons[0]->CHARGE==tight_plus_SIP_electrons[1]->CHARGE) {
                         OS_num=2;
-                    } else if(tight_plus_SIP_electrons[0]->CHARGE==tight_plus_SIP_electrons[2]) {
+                    } else if(tight_plus_SIP_electrons[0]->CHARGE==tight_plus_SIP_electrons[2]->CHARGE) {
                         OS_num=1;
                     } else {
                         OS_num=0;
                     }
                     for(int i=0;i<3;++i) {
-                        leps[i]=four_vector(*tight_plus_SIP_electrons[(OS_num+i)%3]);
+                        leps[i]=tight_plus_SIP_electrons[(OS_num+i)%3]->fv();
                         cands[i]=(void*)(tight_plus_SIP_electrons[(OS_num+i)%3]);
                         charges[i]=(tight_plus_SIP_electrons[(OS_num+i)%3])->CHARGE;
+                        auto fsr_photon=fsr_photons.find(cands[i]);
+                        //Add fsr in for Z reconstruction
+                        leps_fsr[i]=leps[i];
                         if(fsr_photon!=fsr_photons.end()) {
-                            leps_fsr[i]=leps[i]+four_vector(*fsr_photon->second);
+                            leps_fsr[i]+=fsr_photon->second.fv();
                         }
                     }
             } //End switch on type for case 3
             //Compute the two alternative z masses
-            float Zmass=(leps[0]+leps[1]).M();
-            float altZmass=(leps[0]+leps[2]).M();
+            float Zmass=(leps_fsr[0]+leps_fsr[1]).M();
+            float altZmass=(leps_fsr[0]+leps_fsr[2]).M();
             //If the alternative Z mass is closer to nominal, switch the candidates. After this leps[0] and leps[1] contain the OSSF pair that is closest to the nominal Z mass, including FSR
-            if(fabs(Zmass-Z_nominal_mass) > fabs(Zmass-Z_nominal_mass)) {
+            if(fabs(Zmass-Z_nominal_mass) > fabs(altZmass-Z_nominal_mass)) {
                 std::swap(leps[1],leps[2]);
+                std::swap(leps_fsr[1],leps_fsr[2]);
+                std::swap(charges[1],charges[2]); //This shouldn't do anything
+                std::swap(cands[1],cands[2]);
             }
         //End case 3
     } //End switch(number_tight)
@@ -321,7 +343,9 @@ void analyze() {
     //Now fill our tree
    
     //Store Z mass
-    tree_Zmass=(leps[0]+leps[1]).M();
+    tree_Zmass_nofsr=(leps[0]+leps[1]).M();
+    tree_Zmass_fsr=(leps_fsr[0]+leps_fsr[1]).M();
+    //Store bkg type
     tree_bkg_type=type;
     tree_lep1_4v=&leps[0];
     tree_lep2_4v=&leps[1];
