@@ -12,9 +12,9 @@ enum bkg_type : unsigned char {
 typedef ROOT::Math::PtEtaPhiMVector four_vector;
 
 class ZpXanalyzer : public NewNtuple {
-    void Loop() override;
     void analyze();
 public:
+    void Loop() override;
     TTree* tree_out;
     float tree_Zmass_nofsr;
     float tree_Zmass_fsr;
@@ -41,7 +41,7 @@ public:
         tree_out->Branch("MC_weighting",&MC_weighting);
         tree_out->Branch("Zmass_nofsr",&tree_Zmass_nofsr);
         tree_out->Branch("Zmass_fsr",&tree_Zmass_fsr);
-        tree_out->Branch("bkg_type",&tree_bkg_type);
+        tree_out->Branch("bkg_type",(unsigned char*)&tree_bkg_type);
         tree_out->Branch("lep1_4v",&tree_lep1_4v);
         tree_out->Branch("lep2_4v",&tree_lep2_4v);
         tree_out->Branch("lep3_4v",&tree_lep3_4v);
@@ -117,13 +117,13 @@ struct muon {
         muInnertrkPTError=x->RECOMU_muInnertrkPTError->at(i);
         muInnertrkNPixHits=x->RECOMU_muInnertrkNPixHits->at(i);
         //These branches are always filled, or not, together.
-        if(i<=x->RECOMU_mutrkNMuonHits->size()) {
+        if(i<x->RECOMU_mutrkNMuonHits->size()) {
             mutrkNMuonHits=x->RECOMU_mutrkNMuonHits->at(i);
             muInnertrktrackerLayersWithMeasurement=x->RECOMU_muInnertrktrackerLayersWithMeasurement->at(i);
         } else {
             mutrkNMuonHits=-999;
         }   
-        if(i<=x->RECOMU_mubesttrkType->size()) {
+        if(i<x->RECOMU_mubesttrkType->size()) {
             mubesttrkType=x->RECOMU_mubesttrkType->at(i);
             mubesttrkDxy=x->RECOMU_mubesttrkDxy->at(i);
             mubesttrkDz=x->RECOMU_mubesttrkDz->at(i);
@@ -200,7 +200,7 @@ struct electron{
         gsftrack_dxy=x->RECOELE_gsftrack_dxy->at(i);
         gsftrack_dz=x->RECOELE_gsftrack_dz->at(i);
         //Only filled if true. Seems to be only branch that isn't always filled among used branches
-        if(i<=x->RECOELE_isGap->size()) {
+        if(i<x->RECOELE_isGap->size()) {
             isGap=x->RECOELE_isGap->at(i);
         } else {
             isGap=0;

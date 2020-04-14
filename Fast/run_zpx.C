@@ -78,8 +78,8 @@ int main (int argc, char ** argv){
     nome+=path;nome+="/output_";
     nome+=dataset;
     nome+=".root";
-    TFile *outfile=TFile::Open(nome.c_str(),"CREATE");
-    ZpXanalyzer(chain,outfile);
+    TFile *outfile=TFile::Open(nome.c_str(),"RECREATE");
+    ZpXanalyzer(chain,outfile).Loop();
     outfile->Close();
     //delete tree3;
     //file3 -> Close();

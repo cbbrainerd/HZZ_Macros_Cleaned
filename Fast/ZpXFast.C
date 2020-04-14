@@ -79,6 +79,8 @@ void ZpXanalyzer::analyze() {
         case b_3mu:
         case b_1e2mu:
             number_tight=tight_plus_SIP_muons.size();
+            //Need at least two leptons of opposite sign
+            if(number_tight<2) return;
             charge[0]=tight_plus_SIP_muons[0]->CHARGE;
             charge[1]=tight_plus_SIP_muons[1]->CHARGE;
             if(number_tight>2) charge[2]=tight_plus_SIP_muons[2]->CHARGE;
@@ -86,12 +88,12 @@ void ZpXanalyzer::analyze() {
         case b_2e1mu:
         case b_3e:
             number_tight=tight_plus_SIP_electrons.size();
+            //Need at least two leptons of opposite sign
+            if(number_tight<2) return;
             charge[0]=tight_plus_SIP_electrons[0]->CHARGE;
             charge[1]=tight_plus_SIP_electrons[1]->CHARGE;
             if(number_tight>2) charge[2]=tight_plus_SIP_electrons[2]->CHARGE;
     }
-    //Need at least two leptons of opposite sign
-    if(number_tight<2) return;
     if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) return;
     //To store fsr photons for each lepton
     std::unordered_map<void*,photon> fsr_photons;
@@ -193,10 +195,10 @@ void ZpXanalyzer::analyze() {
         case b_3mu:
         case b_1e2mu:
             number_tight=muon_tight_SIP_iso.size();
+            if(number_tight<2) return;
             charge[0]=muon_tight_SIP_iso[0]->CHARGE;
             charge[1]=muon_tight_SIP_iso[1]->CHARGE;
             if(number_tight>2) charge[2]=muon_tight_SIP_iso[2]->CHARGE;
-            if(number_tight<2) return;
             if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) return;
             break;
         case b_2e1mu:

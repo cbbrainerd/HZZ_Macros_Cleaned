@@ -1,1 +1,1 @@
-g++ -DSTANDALONE -I "$ROOTSYS/include" `root-config --glibs --libs --cflags` -lRooFit -lRooFitCore -L "${CMSSW_RELEASE_BASE}/src" -o ZpXFast -fdiagnostics-color ZpXFast.C -O3 run_zpx.C NewNtuple.C -lGenVector
+g++ -DSTANDALONE -I "$ROOTSYS/include" `root-config --glibs --libs --cflags` -lRooFit -lRooFitCore -L "${CMSSW_RELEASE_BASE}/src" -o ZpXFast -fdiagnostics-color ZpXFast.C run_zpx.C NewNtuple.C -lGenVector -g #-O3 
