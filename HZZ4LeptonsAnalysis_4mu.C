@@ -1314,26 +1314,27 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
         }
       }
       //@
+      common_loop();
       f_lhe_npartons = LHE_PARTON_N;
+      //Just sort it 
+      //f_lhe_npartons = LHE_PARTON_N; LHE_PARTON_N is bugged in the original code. How does this work in Reham's code?
+      f_lhe_npartons=LHE_PARTON_PT->size();
+       // std::cout << "LHE_PARTON_N: " << LHE_PARTON_N << " LHE_PARTON_PT->size(): " << LHE_PARTON_PT->size() << std::endl;
+      auto sort_pt=sort_permutation(*LHE_PARTON_PT,std::greater<std::remove_reference<decltype((*LHE_PARTON_PT))>::type::value_type>());
+      apply_permutation(*LHE_PARTON_CLEAR,sort_pt);
+      apply_permutation(*LHE_PARTON_PDGID,sort_pt);
+      apply_permutation(*LHE_PARTON_PT,sort_pt);
+      apply_permutation(*LHE_PARTON_ETA,sort_pt);
+      apply_permutation(*LHE_PARTON_PHI,sort_pt);
+      apply_permutation(*LHE_PARTON_E,sort_pt);
       for(unsigned int iparton=0; iparton<maxPartons; ++iparton){
-	if(iparton < LHE_PARTON_N){
-	  unsigned int index = -1;
-	  float max_pt = -1;
-	  //To sort the partons by decreasing pt
-	  for(int jparton=0; jparton<LHE_PARTON_N; ++jparton){
-	    if(safeAccess(LHE_PARTON_PT)[jparton] > max_pt){
-	      max_pt = safeAccess(LHE_PARTON_PT)[jparton];
-	      index = jparton;
-	    }
-	  }
-	  
-	  f_lhe_parton_clear[iparton] = safeAccess(LHE_PARTON_CLEAR)[index];
-	  f_lhe_parton_pdgid[iparton] = safeAccess(LHE_PARTON_PDGID)[index];
-	  f_lhe_parton_pt[iparton]    = safeAccess(LHE_PARTON_PT)[index];
-	  f_lhe_parton_eta[iparton]   = safeAccess(LHE_PARTON_ETA)[index];
-	  f_lhe_parton_phi[iparton]   = safeAccess(LHE_PARTON_PHI)[index];
-	  f_lhe_parton_e[iparton]     = safeAccess(LHE_PARTON_E)[index];
-	  safeAccess(LHE_PARTON_PT)[index] = -2;
+	if(iparton < f_lhe_npartons){
+	  f_lhe_parton_clear[iparton] = safeAccess(LHE_PARTON_CLEAR)[iparton];
+	  f_lhe_parton_pdgid[iparton] = safeAccess(LHE_PARTON_PDGID)[iparton];
+	  f_lhe_parton_pt[iparton]    = safeAccess(LHE_PARTON_PT)[iparton];
+	  f_lhe_parton_eta[iparton]   = safeAccess(LHE_PARTON_ETA)[iparton];
+	  f_lhe_parton_phi[iparton]   = safeAccess(LHE_PARTON_PHI)[iparton];
+	  f_lhe_parton_e[iparton]     = safeAccess(LHE_PARTON_E)[iparton];
 	}
 	else{
 	  f_lhe_parton_clear[iparton] = -999;
@@ -1344,7 +1345,6 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
 	  f_lhe_parton_e[iparton]     = -999;
 	}
       }
-    common_loop();
       //Reham 1:25889:230457
       // if (!(Run==1 && LumiSection==2589 && Event==230457)) continue;
       // cout<<"This is run= "<<Run<<"Lumi= "<<LumiSection<<"Event= "<<Event<<endl;
@@ -1352,7 +1352,7 @@ void HZZ4LeptonsAnalysis::Loop(const Char_t *output)
       //if (Run==LumiSection && Run==Event) continue;   
       //if (jentry!=1276102) continue;
 
-      if(jentry%5000 == 0) std::cout << "Analyzing entry: " << jentry << endl;   
+      if(jentry%1 == 0) std::cout << "Analyzing entry: " << jentry << endl;   
 
       if( RECO_NMU > 100 ) RECO_NMU = 100;
       if( RECO_NELE > 100 ) RECO_NELE = 100;

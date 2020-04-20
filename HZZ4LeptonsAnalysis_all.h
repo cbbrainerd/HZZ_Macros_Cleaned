@@ -147,6 +147,9 @@ void HZZ4LeptonsAnalysis::common_loop() {
     patch(RECOMU_trkmuLastStationOptimizedLowPtTight,RECOMU_PT,0);
     patch(RECOMU_MatchingMCTruth,RECOMU_PT,0);
     patch(RECOPHOT_MatchingMCTruth,RECOPHOT_PT,0);
+    //LHE_PARTON_N is uninitialized in ntuplizer- causes problems on 
+    if(MC_type=="NO") LHE_PARTON_N=0;
+
     //RECOzMuMu_MatchingMCTruth
     //RECOzEE_MatchingMCTruth
     //RECOHzzEEEE_MatchingMCTruth

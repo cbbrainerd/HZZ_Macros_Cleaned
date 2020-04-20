@@ -3,6 +3,7 @@
 #include "Math/Vector4D.h"
 #include <unordered_map>
 #include <algorithm>
+#include <iostream>
 
 typedef ROOT::Math::PtEtaPhiMVector four_vector;
 float Z_nominal_mass=91.188;
@@ -11,12 +12,23 @@ void ZpXanalyzer::Loop() {
    if (fChain == 0) return;
 
    for (Long64_t jentry=0; jentry < fChain->GetEntriesFast() ;jentry++) {
-      Long64_t ientry = LoadTree(jentry);
-      if (ientry < 0) break;
+      if(jentry % 1000==0) {
+        std::cout << "Processing entry " << jentry << std::endl;
+        verbose=true;
+      }
+      Long64_t ientry=LoadTree(jentry);
       fChain->GetEntry(jentry);
+      if(jentry % 1000==0) {
+        std::cout << "Analyzing...\n";
+        std::cout << Event << std::endl;
+      }
       analyze();
       // if (Cut(ientry) < 0) continue;
    }
+}
+
+bool ZpXanalyzer::Notify() {
+    enable_branches();
 }
 
 //Lepton ID
@@ -349,7 +361,9 @@ void ZpXanalyzer::analyze() {
     tree_Zmass_fsr=(leps_fsr[0]+leps_fsr[1]).M();
     //Store bkg type
     tree_bkg_type=type;
+    if(verbose) std::cout << "Run:" << Run << "Lumi:" << LumiSection << "Event:" << Event << "\n";
     tree_lep1_4v=&leps[0];
+    if(verbose) std::cout << tree_lep1_4v->pt() << std::endl;
     tree_lep2_4v=&leps[1];
     tree_lep3_4v=&leps[2];
     tree_lep1_fsr_4v=&leps_fsr[0];
@@ -368,5 +382,39 @@ void ZpXanalyzer::analyze() {
         case b_3mu:
         tree_lep3_tight=((muon*)cands[2])->tight;
     }
+    if(is_MC) { //For mc, compute event weight
+    /*    
+        float pileup_weight;
+        float scale_factor;
+        float total_weight;
+     */
+        pileup_weight=pileup_corr.get_pileup_weight(num_PU_vertices);
+        int emin=0,emax=0,mumin=0,mumax=0;
+        switch(type) {
+            case b_3mu:
+            mumax=3;
+            case b_1e2mu:
+            mumax=2;emin=2;emax=3;
+            case b_2e1mu:
+            emax=2;mumin=2;mumax=3;
+            case b_3e:
+            emax=3;
+        }
+        for(int i=emin;i<emax;++i) {
+            electron *ele=(electron*)cands[i];
+            float pt=ele->PT;
+            if(pt > 200) pt=200;
+            scale_factor[i]=scale_factors_ele.get_scale_factor(ele->SCL_ETA,pt,ele->isGap);
+        }
+        for(int i=mumin;i<mumax;++i) {
+            muon *mu=(muon*)cands[i];
+            float pt=mu->PT;
+            if(pt > 200) pt=200;
+            scale_factor[i]=scale_factors_ele.get_scale_factor(mu->ETA,pt,false);
+        }
+        //Total weight does not include SF[2] since that has different ID requirements. (Should be somewhere between the SF for the tight ID and 1)
+        total_weight=MC_weighting*scale_factor[0]*scale_factor[1]*pileup_weight;
+    }
     tree_out->Fill();
+    verbose=false;
 }

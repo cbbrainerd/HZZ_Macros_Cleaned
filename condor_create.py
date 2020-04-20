@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+#To do: fix this to put a small wrapper script in each condor job with one overall submit script for all of them
+
 from CRAB_Datasets import datasets as crab_datasets
 from NONCRAB_Datasets import datasets as noncrab_datasets
 from Datasets_Filelist import datasets as datasets_filelist
@@ -159,7 +161,7 @@ else:
     print 'Using filelist at %s' % inputs
     try:
         with open(inputs) as f:
-            filelist=f.readlines()
+            filelist=[x.rstrip() for x in f.readlines()]
     except IOError:
         print 'No filelist at %s' % inputs
         raise SystemExit
