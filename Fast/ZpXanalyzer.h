@@ -47,6 +47,8 @@ public:
     float pileup_weight;
     float scale_factor[3];
     float total_weight;
+    float drs12,drs13,drs23;
+    std::size_t f_nleptons, f_ntight, f_no_os, f_ntight_iso, f_no_os_iso, f_ghost_removal;
 
     ZpXanalyzer(TTree* intree,TFile* outfile_,bool isMC,std::string era) : 
         NewNtuple(intree), 
@@ -54,7 +56,13 @@ public:
         is_MC(isMC),
         pileup_corr(isMC,era), 
         scale_factors_mu(isMC,era,std::string("muon")),
-        scale_factors_ele(isMC,era,std::string("electron"))
+        scale_factors_ele(isMC,era,std::string("electron")),
+        f_nleptons(0),
+        f_ntight(0),
+        f_no_os(0),
+        f_ntight_iso(0),
+        f_no_os_iso(0),
+        f_ghost_removal(0)
     {
         //Disable all branches for performance reasons
         intree->SetBranchStatus("*",0);
@@ -92,12 +100,14 @@ public:
         tree_out->Branch("puppimet_phi",&RECO_PUPPIMET_PHI);
         tree_out->Branch("pfmet_xycorr",&RECO_PFMET_xycorr);
         tree_out->Branch("pfmet_xycorr_phi",&RECO_PFMET_PHI_xycorr);
+        tree_out->Branch("deltaR2_12",&drs12);
+        tree_out->Branch("deltaR2_13",&drs13);
+        tree_out->Branch("deltaR2_23",&drs23);
         if(isMC) {
             tree_out->Branch("pileup_weight",&pileup_weight);
-            tree_out->Branch("num_pileup_vertices",&num_PU_vertices);
             tree_out->Branch("scale_factor_1",&scale_factor[0]);
             tree_out->Branch("scale_factor_2",&scale_factor[1]);
-            tree_out->Branch("scale_factor_1",&scale_factor[2]);
+            tree_out->Branch("scale_factor_3",&scale_factor[2]);
             tree_out->Branch("total_weight",&total_weight);
         }
     }  

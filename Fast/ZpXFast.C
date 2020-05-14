@@ -1,30 +1,44 @@
 #include <limits>
 #include "ZpXanalyzer.h"
 #include "Math/Vector4D.h"
+#include "Math/VectorUtil.h"
 #include <unordered_map>
 #include <algorithm>
 #include <iostream>
 
+//To do: forgot ghost removal deltaR > .02 between any leptons (it's fine we can do that in the ntuples)
+
 typedef ROOT::Math::PtEtaPhiMVector four_vector;
+using ROOT::Math::VectorUtil::DeltaR2;
+
 float Z_nominal_mass=91.188;
 
 void ZpXanalyzer::Loop() {
-   if (fChain == 0) return;
-
-   for (Long64_t jentry=0; jentry < fChain->GetEntriesFast() ;jentry++) {
-      if(jentry % 1000==0) {
-        std::cout << "Processing entry " << jentry << std::endl;
-        verbose=true;
-      }
-      Long64_t ientry=LoadTree(jentry);
-      fChain->GetEntry(jentry);
-      if(jentry % 1000==0) {
-        std::cout << "Analyzing...\n";
-        std::cout << Event << std::endl;
-      }
-      analyze();
-      // if (Cut(ientry) < 0) continue;
-   }
+    if (fChain == 0) return;
+    Long64_t jentry;
+    for (jentry=0; jentry < fChain->GetEntriesFast() ;jentry++) {
+       if(jentry % 100000==0) {
+         std::cout << "Processing entry " << jentry << std::endl;
+         verbose=true;
+       }
+       Long64_t ientry=LoadTree(jentry);
+       fChain->GetEntry(jentry);
+       analyze();
+       // if (Cut(ientry) < 0) continue;
+    }
+    //cutflow histogram
+    //std::size_t f_nleptons, f_ntight, f_no_os, f_ntight_iso, f_no_os_iso, f_ghost_removal;
+    std::size_t cuts[]={0,f_nleptons,f_ntight,f_no_os,f_ntight_iso,f_no_os_iso,f_ghost_removal};
+    const char* cutflow_labels[]={"nevents","nleptons","ntight","opposite sign pair","ntight after iso","opposite sign after iso","ghost removal"};
+    const int n_labels=sizeof(cutflow_labels)/sizeof(cutflow_labels[0]);
+    TH1* cutflow=new TH1D("cutflow","cutflow",n_labels,0,1);
+    for(int i=0;i<n_labels;++i) {
+        //jentry is initially the full number of events. Subtract off the number lost at each point in the cutflow
+        jentry-=cuts[i];
+        //Note that the first non-underflow bin of a TH1 is 1, not 0
+        cutflow->SetBinContent(i+1,jentry);
+        cutflow->GetXaxis()->SetBinLabel(i+1,cutflow_labels[i]);
+    }
 }
 
 bool ZpXanalyzer::Notify() {
@@ -35,7 +49,6 @@ bool ZpXanalyzer::Notify() {
 //isMuon true: muon, false: lepton
 //isTight true: tight ID (sip, iso, etc) false: loose + SIP
 void ZpXanalyzer::analyze() {
-
     //lepton IDs. Also fill std::vector of leptons so we don't have to access through RECO... branches
     std::vector<muon> muons;
     for(std::size_t i=0;i!=RECOMU_PT->size();++i) {
@@ -81,7 +94,10 @@ void ZpXanalyzer::analyze() {
     }
     
     //If we don't have exactly 3 loose+SIP leptons, we can stop now, since we can't possibly select the event otherwise
-    if(loose_plus_SIP_electrons.size()+loose_plus_SIP_muons.size()!=3) return;
+    if(loose_plus_SIP_electrons.size()+loose_plus_SIP_muons.size()!=3) {
+        ++f_nleptons;
+        return;
+    }
     //bkg_type is equivalent to number of electrons in event
     bkg_type type=(bkg_type)loose_plus_SIP_electrons.size();
     //We can also stop if we don't have an OSSF pair
@@ -92,7 +108,10 @@ void ZpXanalyzer::analyze() {
         case b_1e2mu:
             number_tight=tight_plus_SIP_muons.size();
             //Need at least two leptons of opposite sign
-            if(number_tight<2) return;
+            if(number_tight<2) {
+                ++f_ntight;
+                return;
+            }
             charge[0]=tight_plus_SIP_muons[0]->CHARGE;
             charge[1]=tight_plus_SIP_muons[1]->CHARGE;
             if(number_tight>2) charge[2]=tight_plus_SIP_muons[2]->CHARGE;
@@ -101,12 +120,18 @@ void ZpXanalyzer::analyze() {
         case b_3e:
             number_tight=tight_plus_SIP_electrons.size();
             //Need at least two leptons of opposite sign
-            if(number_tight<2) return;
+            if(number_tight<2) {
+                ++f_ntight;
+                return;
+            }
             charge[0]=tight_plus_SIP_electrons[0]->CHARGE;
             charge[1]=tight_plus_SIP_electrons[1]->CHARGE;
             if(number_tight>2) charge[2]=tight_plus_SIP_electrons[2]->CHARGE;
     }
-    if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) return;
+    if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) {
+        ++f_no_os;
+        return;
+    }
     //To store fsr photons for each lepton
     std::unordered_map<void*,photon> fsr_photons;
     for(std::size_t i=0;i!=RECOPFPHOT_PT->size();++i) {
@@ -207,11 +232,17 @@ void ZpXanalyzer::analyze() {
         case b_3mu:
         case b_1e2mu:
             number_tight=muon_tight_SIP_iso.size();
-            if(number_tight<2) return;
+            if(number_tight<2) {
+                ++f_ntight_iso;
+                return;
+            }
             charge[0]=muon_tight_SIP_iso[0]->CHARGE;
             charge[1]=muon_tight_SIP_iso[1]->CHARGE;
             if(number_tight>2) charge[2]=muon_tight_SIP_iso[2]->CHARGE;
-            if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) return;
+            if(charge[0]==charge[1] && (number_tight==2 || charge[0]==charge[2])) {
+                ++f_no_os_iso;
+                return;
+            }
             break;
         case b_2e1mu:
         case b_3e:
@@ -354,6 +385,13 @@ void ZpXanalyzer::analyze() {
     //We are now left with the Lorentz vectors: 0 and 1 correspond to the Z candidate and 2 to the remaining lepton
     //We also have the charge and a void* to the original object
 
+    drs12=DeltaR2(leps[0],leps[1]);
+    drs13=DeltaR2(leps[0],leps[2]);
+    drs23=DeltaR2(leps[1],leps[2]);
+    if(!(drs12 > .0004 && drs13 > .0004 && drs23 > .0004)) {
+        ++f_ghost_removal;
+        return;
+    }
     //Now fill our tree
    
     //Store Z mass

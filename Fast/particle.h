@@ -91,13 +91,13 @@ private:
         return (isGlobalMu || (isTrackerMu && numberOfMatches>0)) &&
         mubesttrkType!=2 &&
         PT > 5. &&
-        ETA < 2.4 &&
+        fabs(ETA) < 2.4 &&
+        fabs(mubesttrkDxy) < .5 &&
         fabs(mubesttrkDz) < 1.;
     }
     bool is_tight() const {
         return is_loose() &&
-               (isPFMu || (isTrackerHighPtMu && PT > 200.)) &&
-               fabs(mubesttrkDxy) < .5;
+        (isPFMu || (isTrackerHighPtMu && PT > 200.));
     }
     bool is_SIP() const {
         return fabs(SIP) < 4.;
@@ -138,7 +138,7 @@ struct electron{
         PTError=x->RECOELE_PTError->at(i);
         P=x->RECOELE_P->at(i);
         ETA=x->RECOELE_ETA->at(i);
-        SCL_ETA=x->RECOELE_scl_ETA->at(i);
+        SCL_ETA=x->RECOELE_scl_Eta->at(i);
         PHI=x->RECOELE_PHI->at(i);
         CHARGE=x->RECOELE_CHARGE->at(i);
         ID=x->RECOELE_ID->at(i);
