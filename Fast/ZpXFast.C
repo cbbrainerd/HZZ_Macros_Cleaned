@@ -414,11 +414,13 @@ void ZpXanalyzer::analyze() {
     switch(type) {
         case b_1e2mu:
         case b_3e:
+        //For electrons, ``tight'' is just the electron BDT
         tree_lep3_tight=((electron*)cands[2])->tight;
         break;
         case b_2e1mu:
         case b_3mu:
-        tree_lep3_tight=((muon*)cands[2])->tight;
+        //For muons, ``tight'' is tight plus SIP plus fsr-subtracted isolation
+        tree_lep3_tight=((muon*)cands[2])->tight_plus_SIP && ((muon*)cands[2])->PFX_dB_fsr < .35;
     }
     if(is_MC) { //For mc, compute event weight
     /*    
