@@ -433,24 +433,30 @@ void ZpXanalyzer::analyze() {
         switch(type) {
             case b_3mu:
             mumax=3;
+            break;
             case b_1e2mu:
             mumax=2;emin=2;emax=3;
+            break;
             case b_2e1mu:
             emax=2;mumin=2;mumax=3;
+            break;
             case b_3e:
             emax=3;
+            break;
         }
         for(int i=emin;i<emax;++i) {
             electron *ele=(electron*)cands[i];
             float pt=ele->PT;
             if(pt > 200) pt=200;
             scale_factor[i]=scale_factors_ele.get_scale_factor(ele->SCL_ETA,pt,ele->isGap);
+            efficiency[i]=scale_factors_ele.get_efficiency(ele->SCL_ETA,pt);
         }
         for(int i=mumin;i<mumax;++i) {
             muon *mu=(muon*)cands[i];
             float pt=mu->PT;
             if(pt > 200) pt=200;
-            scale_factor[i]=scale_factors_ele.get_scale_factor(mu->ETA,pt,false);
+            scale_factor[i]=scale_factors_mu.get_scale_factor(mu->ETA,pt,false);
+            efficiency[i]=1.; //No approved efficiency for muons
         }
         //Total weight does not include SF[2] since that has different ID requirements. (Should be somewhere between the SF for the tight ID and 1)
         total_weight=MC_weighting*scale_factor[0]*scale_factor[1]*pileup_weight;
