@@ -46,6 +46,7 @@ public:
     scale_factors_and_efficiencies scale_factors_ele;
     float pileup_weight;
     float scale_factor[3];
+    float efficiency[3];
     float total_weight;
     float drs12,drs13,drs23;
     std::size_t f_nleptons, f_ntight, f_no_os, f_ntight_iso, f_no_os_iso, f_ghost_removal;
@@ -108,6 +109,9 @@ public:
             tree_out->Branch("scale_factor_1",&scale_factor[0]);
             tree_out->Branch("scale_factor_2",&scale_factor[1]);
             tree_out->Branch("scale_factor_3",&scale_factor[2]);
+            tree_out->Branch("efficiency_1",&efficiency[0]);
+            tree_out->Branch("efficiency_2",&efficiency[1]);
+            tree_out->Branch("efficiency_3",&efficiency[2]);
             tree_out->Branch("total_weight",&total_weight);
         }
     }  

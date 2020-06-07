@@ -444,22 +444,28 @@ void ZpXanalyzer::analyze() {
             emax=3;
             break;
         }
+        int pt20=0,pt10=0;
         for(int i=emin;i<emax;++i) {
             electron *ele=(electron*)cands[i];
             float pt=ele->PT;
-            if(pt > 200) pt=200;
+            if(pt > 20) ++pt20;
+            if(pt > 10) ++pt10;
+            //if(pt > 200) pt=200; overflow taken care of in SF code now
             scale_factor[i]=scale_factors_ele.get_scale_factor(ele->SCL_ETA,pt,ele->isGap);
             efficiency[i]=scale_factors_ele.get_efficiency(ele->SCL_ETA,pt);
         }
         for(int i=mumin;i<mumax;++i) {
             muon *mu=(muon*)cands[i];
             float pt=mu->PT;
-            if(pt > 200) pt=200;
+            if(pt > 20) ++pt20;
+            if(pt > 10) ++pt10;
+            //if(pt > 200) pt=200; overflow taken care of in SF code now
             scale_factor[i]=scale_factors_mu.get_scale_factor(mu->ETA,pt,false);
             efficiency[i]=1.; //No approved efficiency for muons
         }
+        if(pt20 < 1 || pt10 < 2) return; //Require one lepton of pt > 20, one pt > 10
         //Total weight does not include SF[2] since that has different ID requirements. (Should be somewhere between the SF for the tight ID and 1)
-        total_weight=MC_weighting*scale_factor[0]*scale_factor[1]*pileup_weight;
+        total_weight=MC_weighting*scale_factor[0]*scale_factor[1]*efficiency[0]*efficiency[1]*pileup_weight;
     }
     tree_out->Fill();
     verbose=false;
