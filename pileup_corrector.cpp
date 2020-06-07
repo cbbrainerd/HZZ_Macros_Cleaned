@@ -11,7 +11,7 @@ static void fail(int line) {
 
 double pileup_corrector::get_pileup_weight(int num_pu_vertices) {
     if(isMC_) {
-        int bin=pileup_ratio_->GetXaxis()->FindBin(num_pu_vertices);
+        int bin=pileup_ratio_->GetXaxis()->FindFixBin(num_pu_vertices);
         return pileup_ratio_->GetBinContent(bin);
     } else {
         return 1.;
