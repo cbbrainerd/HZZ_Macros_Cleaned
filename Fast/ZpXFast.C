@@ -468,5 +468,5 @@ void ZpXanalyzer::analyze() {
         total_weight=MC_weighting*scale_factor[0]*scale_factor[1]*efficiency[0]*efficiency[1]*pileup_weight;
     }
     tree_out->Fill();
-    verbose=false;
+    //verbose=false;
 }

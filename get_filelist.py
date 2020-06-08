@@ -27,8 +27,13 @@ if checkwrite is not None:
                 try:
                     lfnsadd=self.lfnsadds.pop(0)
                     #pfn=pfndict[(self.options.sitename,lfnsadd)]
-                    pfn=self.phedex.getPFN(nodes=[self.options.sitename],lfns=[lfnsadd])[(self.options.sitename,lfnsadd)]
-                    ls_cmd=['/usr/bin/gfal-ls','-l',pfn]
+                    try:
+                        pfn=self.phedex.getPFN(nodes=[self.options.sitename],lfns=[lfnsadd])[(self.options.sitename,lfnsadd)]
+                    except:
+                        print self.options.sitename, lfnsadd
+                        raise
+                    #ls_cmd=['/usr/bin/gfal-ls','-l',pfn]
+                    ls_cmd=['/uscms/homes/c/cbrainer/bin/unsetenv.sh','/usr/bin/gfal-ls','-l',pfn]
                     #if __name__ == "__main__":
                     #    print lfnsadd
                     #    print pfn
@@ -136,19 +141,22 @@ def taskname_to_lfn(taskname,primary_dataset=None):
 
 if __name__=="__main__":
     import sys
-    dataset=sys.argv[1]
+    #dataset=sys.argv[1]
     from CRAB_Datasets import datasets as crab_datasets
-    from NONCRAB_Datasets import datasets as noncrab_datasets
-    from Datasets_Filelist import datasets as datasets_filelist
-    try:
-        tasks=crab_datasets[dataset]
-        primary_dataset=dataset
-        if '/' in primary_dataset:
-            primary_dataset=primary_dataset.split('/')[1]
-        filelist=get_filelist(dataset,'T3_US_FNALLPC',[taskname_to_lfn(task,primary_dataset) for task in tasks])
-    except KeyError:
-        lfns=noncrab_datasets[dataset]
-        filelist=get_filelist(dataset,'T3_US_FNALLPC',lfns)
-    except KeyError:
-        filelist=datasets_filelist[dataset]
-    print filelist
+    #from NONCRAB_Datasets import datasets as noncrab_datasets
+    #from Datasets_Filelist import datasets as datasets_filelist
+    for dataset in crab_datasets:
+        try:
+            tasks=crab_datasets[dataset]
+            primary_dataset=dataset
+            if '/' in primary_dataset:
+                primary_dataset=primary_dataset.split('/')[1]
+            filelist=get_filelist(dataset,'T2_US_Wisconsin',[taskname_to_lfn(task,primary_dataset) for task in tasks])
+        except KeyError:
+            raise
+        #except KeyError:
+        #    lfns=noncrab_datasets[dataset]
+        #    filelist=get_filelist(dataset,'T3_US_FNALLPC',lfns)
+        #except KeyError:
+        #    filelist=datasets_filelist[dataset]
+        print filelist

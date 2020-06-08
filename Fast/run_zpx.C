@@ -79,7 +79,9 @@ int main (int argc, char ** argv){
     nome+=dataset;
     nome+=".root";
     TFile *outfile=TFile::Open(nome.c_str(),"RECREATE");
-    ZpXanalyzer(chain,outfile,is_mc,configuration).Loop();
+    auto analyzer=new ZpXanalyzer(chain,outfile,is_mc,configuration);
+    analyzer->Loop();
+    analyzer->Write();
     outfile->Close();
     //delete tree3;
     //file3 -> Close();

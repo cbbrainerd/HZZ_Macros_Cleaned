@@ -115,7 +115,7 @@ public:
             tree_out->Branch("total_weight",&total_weight);
         }
     }  
-    ~ZpXanalyzer() {
+    inline void Write() {
         tree_out->Write();
         type_hist->Write();
     }
