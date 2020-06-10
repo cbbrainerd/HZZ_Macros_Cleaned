@@ -1,0 +1,1 @@
+g++ -DSTANDALONE -I "$ROOTSYS/include" `root-config --glibs --libs --cflags` -lRooFit -lRooFitCore -L "${CMSSW_RELEASE_BASE}/src" -o Analyzer -fdiagnostics-color Analyzer.C run_analyzer.C NewNtuple.C BranchesForAnalyzer.C pileup_corrector.cpp scale_factors.cpp -lGenVector "$@"

@@ -31,13 +31,13 @@ void ZpXanalyzer::Loop() {
     std::size_t cuts[]={0,f_nleptons,f_ntight,f_no_os,f_ntight_iso,f_no_os_iso,f_ghost_removal};
     const char* cutflow_labels[]={"nevents","nleptons","ntight","opposite sign pair","ntight after iso","opposite sign after iso","ghost removal"};
     const int n_labels=sizeof(cutflow_labels)/sizeof(cutflow_labels[0]);
-    TH1* cutflow=new TH1D("cutflow","cutflow",n_labels,0,1);
+    cutflow_hist=new TH1D("cutflow","cutflow",n_labels,0,1);
     for(int i=0;i<n_labels;++i) {
         //jentry is initially the full number of events. Subtract off the number lost at each point in the cutflow
         jentry-=cuts[i];
         //Note that the first non-underflow bin of a TH1 is 1, not 0
-        cutflow->SetBinContent(i+1,jentry);
-        cutflow->GetXaxis()->SetBinLabel(i+1,cutflow_labels[i]);
+        cutflow_hist->SetBinContent(i+1,jentry);
+        cutflow_hist->GetXaxis()->SetBinLabel(i+1,cutflow_labels[i]);
     }
 }
 
@@ -50,6 +50,7 @@ bool ZpXanalyzer::Notify() {
 //isTight true: tight ID (sip, iso, etc) false: loose + SIP
 void ZpXanalyzer::analyze() {
     //lepton IDs. Also fill std::vector of leptons so we don't have to access through RECO... branches
+    cutflow_debug=0;
     std::vector<muon> muons;
     for(std::size_t i=0;i!=RECOMU_PT->size();++i) {
         muons.emplace_back(this,i);
@@ -98,6 +99,7 @@ void ZpXanalyzer::analyze() {
         ++f_nleptons;
         return;
     }
+    ++cutflow_debug;
     //bkg_type is equivalent to number of electrons in event
     bkg_type type=(bkg_type)loose_plus_SIP_electrons.size();
     //We can also stop if we don't have an OSSF pair
@@ -112,6 +114,7 @@ void ZpXanalyzer::analyze() {
                 ++f_ntight;
                 return;
             }
+            ++cutflow_debug;
             charge[0]=tight_plus_SIP_muons[0]->CHARGE;
             charge[1]=tight_plus_SIP_muons[1]->CHARGE;
             if(number_tight>2) charge[2]=tight_plus_SIP_muons[2]->CHARGE;
@@ -124,6 +127,7 @@ void ZpXanalyzer::analyze() {
                 ++f_ntight;
                 return;
             }
+            ++cutflow_debug;
             charge[0]=tight_plus_SIP_electrons[0]->CHARGE;
             charge[1]=tight_plus_SIP_electrons[1]->CHARGE;
             if(number_tight>2) charge[2]=tight_plus_SIP_electrons[2]->CHARGE;
@@ -132,6 +136,7 @@ void ZpXanalyzer::analyze() {
         ++f_no_os;
         return;
     }
+    ++cutflow_debug;
     //To store fsr photons for each lepton
     std::unordered_map<void*,photon> fsr_photons;
     for(std::size_t i=0;i!=RECOPFPHOT_PT->size();++i) {
@@ -147,7 +152,6 @@ void ZpXanalyzer::analyze() {
             }
         }
         //Only photons that match a lepton are kept
-//        if(clean) photons.push_back(phot);
         //Find closest lepton (loose+SIP), subject to deltaR/photonPT**2 < .12 and deltaR < .5
         double minDeltaR=.5;
         double minDeltaRoverPtSq;
@@ -236,6 +240,7 @@ void ZpXanalyzer::analyze() {
                 ++f_ntight_iso;
                 return;
             }
+            ++cutflow_debug;
             charge[0]=muon_tight_SIP_iso[0]->CHARGE;
             charge[1]=muon_tight_SIP_iso[1]->CHARGE;
             if(number_tight>2) charge[2]=muon_tight_SIP_iso[2]->CHARGE;
@@ -243,6 +248,7 @@ void ZpXanalyzer::analyze() {
                 ++f_no_os_iso;
                 return;
             }
+            ++cutflow_debug;
             break;
         case b_2e1mu:
         case b_3e:
@@ -392,6 +398,7 @@ void ZpXanalyzer::analyze() {
         ++f_ghost_removal;
         return;
     }
+    ++cutflow_debug;
     //Now fill our tree
    
     //Store Z mass
@@ -444,12 +451,9 @@ void ZpXanalyzer::analyze() {
             emax=3;
             break;
         }
-        int pt20=0,pt10=0;
         for(int i=emin;i<emax;++i) {
             electron *ele=(electron*)cands[i];
             float pt=ele->PT;
-            if(pt > 20) ++pt20;
-            if(pt > 10) ++pt10;
             //if(pt > 200) pt=200; overflow taken care of in SF code now
             scale_factor[i]=scale_factors_ele.get_scale_factor(ele->SCL_ETA,pt,ele->isGap);
             efficiency[i]=scale_factors_ele.get_efficiency(ele->SCL_ETA,pt);
@@ -457,16 +461,13 @@ void ZpXanalyzer::analyze() {
         for(int i=mumin;i<mumax;++i) {
             muon *mu=(muon*)cands[i];
             float pt=mu->PT;
-            if(pt > 20) ++pt20;
-            if(pt > 10) ++pt10;
             //if(pt > 200) pt=200; overflow taken care of in SF code now
             scale_factor[i]=scale_factors_mu.get_scale_factor(mu->ETA,pt,false);
             efficiency[i]=1.; //No approved efficiency for muons
         }
-        if(pt20 < 1 || pt10 < 2) return; //Require one lepton of pt > 20, one pt > 10
         //Total weight does not include SF[2] since that has different ID requirements. (Should be somewhere between the SF for the tight ID and 1)
         total_weight=MC_weighting*scale_factor[0]*scale_factor[1]*efficiency[0]*efficiency[1]*pileup_weight;
     }
     tree_out->Fill();
-    //verbose=false;
+    verbose=false;
 }

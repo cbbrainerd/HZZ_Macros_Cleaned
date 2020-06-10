@@ -1,4 +1,36 @@
 //Get all the information from recomu that is actually used in the analysis
+extern void break_here(volatile int);
+struct photon{
+//Not filled in ntuple, so no sense reading them
+    //double x->RECOPFPHOT_PFchHad;
+    //double x->RECOPFPHOT_PFneuHad;
+    //double x->RECOPFPHOT_PFphoton;
+    //double x->RECOPFPHOT_PFPUchAllPart;
+    double PFX_rho;
+    float PT;
+    //float x->RECOPFPHOT_PTError;
+    float ETA;
+    float PHI;
+    double deltaRoverPtSq;
+    double deltaR;
+    //double x->RECOPFPHOT_PT_uncorr;
+    photon(NewNtuple *x,int i) {
+        //PFchHad=x->RECOPFPHOT_PFchHad->at(i);
+        //PFneuHad=x->RECOPFPHOT_PFneuHad->at(i);
+        //PFphoton=x->RECOPFPHOT_PFphoton->at(i);
+        //PFPUchAllPart=x->RECOPFPHOT_PFPUchAllPart->at(i);
+        PFX_rho=x->RECOPFPHOT_PFX_rho->at(i);
+        PT=x->RECOPFPHOT_PT->at(i);
+        //PTError=x->RECOPFPHOT_PTError->at(i);
+        ETA=x->RECOPFPHOT_ETA->at(i);
+        PHI=x->RECOPFPHOT_PHI->at(i);
+        //PT_uncorr=x->RECOPFPHOT_PT_uncorr->at(i);
+    }
+    four_vector fv() const {
+        return four_vector(PT,ETA,PHI,0.);
+    }
+};
+
 struct muon {
     bool isPFMu;
     bool isGlobalMu;
@@ -14,6 +46,7 @@ struct muon {
     double PFchHad;
     double PFneuHad;
     double PFphoton;
+    double PFphoton_fsr;
     double PFPUchAllPart;
     double PFX_dB;
     double PFX_dB_prefsr;
@@ -35,7 +68,8 @@ struct muon {
     bool tight;
     bool loose_plus_SIP;
     bool tight_plus_SIP;
-    muon(ZpXanalyzer* x,int i) {
+    const photon* matched_photon;
+    muon(NewNtuple* x,int i) {
         //These branches are always filled
         isPFMu=x->RECOMU_isPFMu->at(i);
         isGlobalMu=x->RECOMU_isGlobalMu->at(i);
@@ -82,9 +116,21 @@ struct muon {
         tight=is_tight();
         loose_plus_SIP=loose && is_SIP();
         tight_plus_SIP=tight && is_SIP();
+        matched_photon=nullptr;
     }
     four_vector fv() const {
         return four_vector(PT,ETA,PHI,0.106);
+    }
+    four_vector fv_fsr() const {
+        if(matched_photon) {
+            auto M=matched_photon->fv().M();
+            if(M < 0) { std::cout << M << std::endl;
+                break_here(5);
+            }
+            return fv()+matched_photon->fv();
+        } else {
+            return fv();
+        }
     }
 private:
     bool is_loose() const {
@@ -118,6 +164,7 @@ struct electron{
     double PFchHad;
     double PFneuHad;
     double PFphoton;
+    double PFphoton_fsr;
     double PFPUchAllPart;
     double PFX_dB;
     double PFX_dB_prefsr;
@@ -129,8 +176,9 @@ struct electron{
     float scl_Eta;
     float gsftrack_dxy,gsftrack_dz;
     double mvaNonTrigV0;
+    const photon* matched_photon;
     bool loose, tight, loose_plus_SIP;
-    electron(ZpXanalyzer *x,int i) {
+    electron(NewNtuple *x,int i) {
         scl_Phi=x->RECOELE_scl_Phi->at(i);
         scl_Eta=x->RECOELE_scl_Eta->at(i);
         E=x->RECOELE_E->at(i);
@@ -162,9 +210,22 @@ struct electron{
         loose=is_loose();
         tight=is_tight();
         loose_plus_SIP=loose && is_SIP();
+        matched_photon=nullptr;
     }
     four_vector fv() const {
         return four_vector(PT,ETA,PHI,0.000511);
+    }
+    four_vector fv_fsr() const {
+        if(matched_photon) {
+            auto M=matched_photon->fv().M();
+            if(M < 0) { 
+                std::cout << M << std::endl;
+                break_here(5);
+            }
+            return fv()+matched_photon->fv();
+        } else {
+            return fv();
+        }
     }
 private:
     bool is_loose() const {
@@ -197,35 +258,4 @@ private:
         electron* electron_;
     };
     int is_a_muon; //-1 for empty, 0 for electron, 1 for muon
-};
-
-struct photon{
-//Not filled in ntuple, so no sense reading them
-    //double x->RECOPFPHOT_PFchHad;
-    //double x->RECOPFPHOT_PFneuHad;
-    //double x->RECOPFPHOT_PFphoton;
-    //double x->RECOPFPHOT_PFPUchAllPart;
-    double PFX_rho;
-    float PT;
-    //float x->RECOPFPHOT_PTError;
-    float ETA;
-    float PHI;
-    double deltaRoverPtSq;
-    double deltaR;
-    //double x->RECOPFPHOT_PT_uncorr;
-    photon(ZpXanalyzer *x,int i) {
-        //PFchHad=x->RECOPFPHOT_PFchHad->at(i);
-        //PFneuHad=x->RECOPFPHOT_PFneuHad->at(i);
-        //PFphoton=x->RECOPFPHOT_PFphoton->at(i);
-        //PFPUchAllPart=x->RECOPFPHOT_PFPUchAllPart->at(i);
-        PFX_rho=x->RECOPFPHOT_PFX_rho->at(i);
-        PT=x->RECOPFPHOT_PT->at(i);
-        //PTError=x->RECOPFPHOT_PTError->at(i);
-        ETA=x->RECOPFPHOT_ETA->at(i);
-        PHI=x->RECOPFPHOT_PHI->at(i);
-        //PT_uncorr=x->RECOPFPHOT_PT_uncorr->at(i);
-    }
-    four_vector fv() const {
-        return four_vector(PT,ETA,PHI,0.);
-    }
 };

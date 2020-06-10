@@ -33,12 +33,14 @@ public:
     four_vector *tree_lep1_fsr_4v;
     four_vector *tree_lep2_fsr_4v;
     four_vector *tree_lep3_fsr_4v;
+    int cutflow_debug;
     int tree_lep1_q;
     int tree_lep2_q;
     int tree_lep3_q;
     int tree_lep3_tight;
     TFile* outfile;
     TH1* type_hist;
+    TH1* cutflow_hist;
     void enable_branches();
     //Pileup reweighting and scale factors (NB: kfactor weight is not applied to data or WZ so we can skip it)
     pileup_corrector pileup_corr;
@@ -91,6 +93,7 @@ public:
         tree_out->Branch("lep1_fsr_4v",&tree_lep1_fsr_4v);
         tree_out->Branch("lep2_fsr_4v",&tree_lep2_fsr_4v);
         tree_out->Branch("lep3_fsr_4v",&tree_lep3_fsr_4v);
+        tree_out->Branch("cutflow_debug",&cutflow_debug);
         tree_out->Branch("lep1_q",&tree_lep1_q);
         tree_out->Branch("lep2_q",&tree_lep2_q);
         tree_out->Branch("lep3_q",&tree_lep3_q);
@@ -118,6 +121,7 @@ public:
     inline void Write() {
         tree_out->Write();
         type_hist->Write();
+        cutflow_hist->Write();
     }
 };
 
